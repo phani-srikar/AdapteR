@@ -64,26 +64,30 @@ as.data.frame <- function(x, ...)
 
 #' @export
 as.data.frame.FLTable <- function(x, ...){
-    #browser()
+    browser()
     sqlstr <- constructSelect(x)
     sqlstr <- gsub("'%insertIDhere%'",1,sqlstr)
     tryCatch(D <- sqlQuery(getConnection(x),sqlstr),
       error=function(e){stop(e)})
     names(D) <- toupper(names(D))
-    D <- plyr::arrange(D,D[["OBS_ID_COLNAME"]])
+    x <- setAlias(x,"")
+    vobsidcolname <- toupper(getVariables(x)[["obs_id_colname"]])
+    D <- plyr::arrange(D,D[[vobsidcolname]])
     ##browser()
     if(x@isDeep) {
-        D <- reshape2::dcast(D, paste0(toupper("obs_id_colname"),
+      vvaridcolname <- toupper(getVariables(x)[["var_id_colname"]])
+      vvaluecolname <- toupper(getVariables(x)[["cell_val_colname"]])
+      D <- reshape2::dcast(D, vobsidcolname,
                              " ~ ",
-                             toupper("var_id_colname")),
-                   value.var = toupper("cell_val_colname"))
+                             vvaridcolname,
+                   value.var = vvaluecolname)
     } 
-    i <- charmatch(rownames(x),D[[toupper("obs_id_colname")]],nomatch=0)
+    i <- charmatch(rownames(x),D[[vobsidcolname]],nomatch=0)
                                         # print(i)
     D <- D[i,]
-    if(any(D[[toupper("obs_id_colname")]]!=1:nrow(D)))
-        rownames(D) <- D[[toupper("obs_id_colname")]]
-    D[[toupper("obs_id_colname")]] <- NULL
+    if(any(D[[vobsidcolname]]!=1:nrow(D)))
+        rownames(D) <- D[[vobsidcolname]]
+    D[[vobsidcolname]] <- NULL
     ## For sparse deep table
     D[is.na(D)] <- 0
     return(D)
@@ -93,9 +97,8 @@ as.data.frame.FLTable <- function(x, ...){
 as.data.frame.FLVector <- function(x, ...){
     sqlstr <- constructSelect(x)
     sqlstr <- gsub("'%insertIDhere%'",1,sqlstr)
-    #browser()
-
-   tryCatch(D <- sqlQuery(getConnection(x),sqlstr),
+    
+    tryCatch(D <- sqlQuery(getConnection(x),sqlstr),
       error=function(e){stop(e)})
    
     names(D) <- toupper(names(D))
@@ -103,13 +106,13 @@ as.data.frame.FLVector <- function(x, ...){
     vcolnames <- colnames(x)
     # if(ncol(x)<=1 && !(!x@isDeep && nrow(x)==1 && ncol(x)==1))
     #if(ncol(x)<=1 && class(x@select)!="FLTableFunctionQuery")
-    if(ncol(x)<=1)
-    {
-      if(is.character(rownames(x)) && !all(rownames(x)==1:length(rownames(x))))
-      vrownames<-1:length(rownames(x))
-      if(is.character(colnames(x)) && !all(colnames(x)==1:length(colnames(x))))
-      vcolnames<-1:length(colnames(x))
-    }
+    # if(ncol(x)<=1)
+    # {
+    #   if(is.character(rownames(x)) && !all(rownames(x)==1:length(rownames(x))))
+    #   vrownames<-1:length(rownames(x))
+    #   if(is.character(colnames(x)) && !all(colnames(x)==1:length(colnames(x))))
+    #   vcolnames<-1:length(colnames(x))
+    # }
     
      i <- charmatch(vrownames,D[[toupper("vectorIndexColumn")]],nomatch=0)
      if(x@isDeep) {

@@ -225,10 +225,10 @@ store.FLTable <- function(object,pTableName=NULL,...)
 {
   connection <- getConnection(object)
   if(is.null(pTableName))
-    table_name <- gen_unique_table_name("store")
-  else table_name <- pTableName
+    vtableName <- gen_unique_table_name("store")
+  else vtableName <- pTableName
 
-  createTable(pTableName=table_name,
+  createTable(pTableName=vtableName,
               pSelect=constructSelect(object))
   # vSqlStr <- paste0(" CREATE TABLE ",
   #                   getOption("ResultDatabaseFL"),".",table_name,
@@ -242,6 +242,8 @@ store.FLTable <- function(object,pTableName=NULL,...)
   vtemp <- separateDBName(vtableName)
   vtableName <- vtemp["vtableName"]
   vdatabase <- vtemp["vdatabase"]
+  if(vdatabase != getOption("ResultDatabaseFL"))
+  vtableName <- paste0(vdatabase,".",vtableName)
 
   ## Store MetaInfo if permanent Storage
   updateMetaTable(pTableName=getRemoteTableName(vdatabase,vtableName),
@@ -250,18 +252,16 @@ store.FLTable <- function(object,pTableName=NULL,...)
 
   if(object@isDeep)
   table <- FLTable(
-                   vdatabase,
                    vtableName,
-                   "obs_id_colname",
-                   "var_id_colname",
-                   "cell_val_colname",
+                   getVariables(object)[["obs_id_colname"]],
+                   getVariables(object)[["var_id_colname"]],
+                   getVariables(object)[["cell_val_colname"]],
                    type=typeof(object)
                   )
   else
   table <- FLTable(
-                   vdatabase,
                    vtableName,
-                   "obs_id_colname",
+                   getVariables(object)[["obs_id_colname"]],
                    type=typeof(object)
                   )
   return(table)

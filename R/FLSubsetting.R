@@ -84,7 +84,7 @@ NULL
     vtype <- typeof(object)
     if(class(object@select)=="FLTableFunctionQuery")
       object <- store(object)
-	  connection<-getConnection(object)
+	connection<-getConnection(object)
     if(is.FLVector(rows)) rows <- as.vector(rows)
     if(is.FLVector(cols)) cols <- as.vector(cols)
     if(is.numeric(rows))

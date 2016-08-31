@@ -45,11 +45,16 @@ colMeans.FLMatrix<-function(object,...)
                         order = "",
                         SQLquery=sqlstr)
 
+    if(is.null(colnames(object)))
+        vcolnames <- 1:ncol(object)
+    else vcolnames <- colnames(object)
+
 	flv <- new("FLVector",
 				select = tblfunqueryobj,
-				dimnames = list(1:ncol(object),
+				dimnames = list(vcolnames,
 								"vectorValueColumn"),
 				isDeep = FALSE)
+    # flv <- flv[,"vectorValueColumn"]
 
 	return(ensureQuerySize(pResult=flv,
 	            pInput=list(object),
