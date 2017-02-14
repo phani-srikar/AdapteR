@@ -309,3 +309,127 @@ runbenchMarkFLKNN <- function(pMultiplierLimit=c(10,5),
     plot(p1)
     return(vres)
 }
+
+
+#' k-Nearest Neighbour Indexes
+#' For each row of the test set, the k nearest (according to distance metric speicified) 
+#' training set vectors are found and indices,distances are returned.
+#' @param data input deep FLTable
+#' @param query input deep FLTable
+#' @param k number of neighbours considered.
+#' @param ... additional parameters like dist Flag to get the distances as well.
+#' @return FLVector of indices or a list of dist & index if dist FLag is true.
+#' @examples
+#' FLdeepTbl <- FLTable(getTestTableName("ARknnDevSmall"),"obsid","varid","num_val")
+#' FLknnOutput <- knnx.index(FLdeepTbl,FLdeepTbl,k=1)
+#' FLknnOutput
+#' @export
+knnx.index <- function(data,
+                query,
+                k=1,
+                algorithm="kd_tree",
+                ...){
+    UseMethod("knnx.index")
+}
+
+#' @export
+knnx.index.default <- FNN::knnx.index
+
+#' @export
+knnx.index.FLTable <- function(data,
+                                query,
+                                k=1,
+                                algorithm="kd_tree",
+                                ...){
+    return(batchIndexCompute(pDataTbl=data,
+                            pSearchTbl=query,
+                            k=k,
+                            ...))
+}
+
+batchIndexCompute <- function(pDataTbl,
+                              pSearchTbl,
+                              pNBatches=1000,
+                              pReturnDist=FALSE,
+                              k=1,
+                              ...){
+    vBatchSize <- ceiling(nrow(pSearchTbl)/pNBatches)
+    vtableNames <- sapply(list(pSearchTbl,pDataTbl),getTableNameSlot)
+
+    vIndexTableName <- gen_unique_table_name(paste0(vtableNames[2],"Index"))
+
+    pSearchTbl <- setAlias(pSearchTbl,"a")
+    pDataTbl <- setAlias(pDataTbl,"b")
+
+    ## get Column aliases
+    vobsidColnames <- sapply(list(pSearchTbl,pDataTbl),getObsIdSQLExpression)
+    vvaridColnames <- sapply(list(pSearchTbl,pDataTbl),getVarIdSQLExpression)
+    vvalueColnames <- sapply(list(pSearchTbl,pDataTbl),getValueSQLExpression)
+
+    ## Construct WhereClause
+    getBatchWhere <- function(pBatchNum){
+        pasteOperator <- function(lhs,rhs,op="<>")
+            return(paste0(lhs," ",op," ",rhs))
+        return(constructWhere(c(pasteOperator(vvaridColnames[1],vvaridColnames[2],"="),
+                                where(pDataTbl),
+                                where(pSearchTbl),
+                                # pasteOperator(vobsidColnames[1],vobsidColnames[2]),
+                                # pasteOperator(vvaridColnames[1],-1),
+                                # pasteOperator(vvaridColnames[2],-1),
+                                pasteOperator(vvalueColnames[1],vvalueColnames[2]),
+                                pasteOperator(pasteOperator(vobsidColnames[1],
+                                                            vBatchSize,"MOD"),
+                                              pBatchNum,
+                                             "=")
+                            ))
+                )
+    }
+
+    genResultQuery <- function(pBatchNum){
+        paste0("SELECT ",vobsidColnames[1]," AS searchid, \n ",
+                        vobsidColnames[2]," AS matchid, \n ",
+                        "FLEuclideanDist(",vvalueColnames[1],",",
+                                           vvalueColnames[2],") AS dist \n ",
+                "FROM ",vtableNames[1]," a, \n ",
+                        vtableNames[2]," b \n ",
+                getBatchWhere(pBatchNum)," \n ",
+                " QUALIFY ",k," >= ROW_NUMBER() OVER(PARTITION BY ",
+                    vobsidColnames[1]," ORDER BY dist) \n ",
+                " GROUP BY ",vobsidColnames[1],",",vobsidColnames[2])
+    }
+
+    vres <- createTable(pTableName=vIndexTableName,
+                        pColNames=c("searchid","matchid","dist"),
+                        pColTypes=c("BIGINT","BIGINT","FLOAT"),
+                        pPrimaryKey=c("searchid","matchid"))
+
+    vres <- sapply(0:(vBatchSize-1),
+                    function(x){
+                        vres <- insertIntotbl(pTableName=vIndexTableName,
+                                              pSelect=genResultQuery(x))
+                    })
+
+    genResultFLVector <- function(vResColname){
+        select <- new("FLSelectFrom",
+                connectionName = attr(connection,"name"), 
+                table_name = c(flt=vIndexTableName),
+                variables = list(
+                        obs_id_colname = "flt.searchid"),
+                whereconditions="",
+                order = "")
+
+        ## cannot use dimnames
+        return(newFLVector(
+                select=select,
+                Dimnames=list(NULL,vResColname),
+                dims=c(nrow(pSearchTbl),1),
+                isDeep=FALSE,
+                type="double"))
+    }
+
+    vIndexFLVector <- genResultFLVector("matchid")
+    if(pReturnDist)
+        vIndexFLVector <- list(index=vIndexFLVector,
+                                dist=genResultFLVector("dist"))
+    return(vIndexFLVector)
+}

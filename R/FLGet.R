@@ -590,7 +590,7 @@ getFLPlatformDataTypeMap <- function(pFLType){
     vnames <- names(pFLType)
     vtypeMap <- list(TD=c(INT="INT",BYTEINT="BYTEINT",
                         "VARCHAR(255)"="VARCHAR(255)",
-                        FLOAT="FLOAT"),
+                        FLOAT="FLOAT",BIGINT="BIGINT"),
                     TDAster=c(INT="INT",BYTEINT="BYTEA",
                         "VARCHAR(255)"="VARCHAR(255)",
                         FLOAT="FLOAT"),
