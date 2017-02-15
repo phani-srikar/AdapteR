@@ -321,7 +321,7 @@ runbenchMarkFLKNN <- function(pMultiplierLimit=c(10,5),
 #' @return FLVector of indices or a list of dist & index if dist FLag is true.
 #' @examples
 #' FLdeepTbl <- FLTable(getTestTableName("ARknnDevSmall"),"obsid","varid","num_val")
-#' FLknnOutput <- knnx.index(FLdeepTbl,FLdeepTbl,k=1)
+#' FLknnOutput <- knnx.index(FLdeepTbl,FLdeepTbl,k=2)
 #' FLknnOutput
 #' @export
 knnx.index <- function(data,
@@ -341,9 +341,13 @@ knnx.index.FLTable <- function(data,
                                 k=1,
                                 algorithm="kd_tree",
                                 ...){
+    if("dist" %in% names(list(...)))
+        vDistFLag <- list(...)[["dist"]]
+    else vDistFLag <- FALSE
     return(batchIndexCompute(pDataTbl=data,
                             pSearchTbl=query,
                             k=k,
+                            pReturnDist=vDistFLag,
                             ...))
 }
 
@@ -353,6 +357,13 @@ batchIndexCompute <- function(pDataTbl,
                               pReturnDist=FALSE,
                               k=1,
                               ...){
+    if(!isDeep(pDataTbl))
+        pDataTbl <- wideToDeep(pDataTbl,
+                                fetchIDs=FALSE)
+    if(!isDeep(pSearchTbl))
+        pSearchTbl <- wideToDeep(pSearchTbl,
+                                fetchIDs=FALSE)
+
     vBatchSize <- ceiling(nrow(pSearchTbl)/pNBatches)
     vtableNames <- sapply(list(pSearchTbl,pDataTbl),getTableNameSlot)
 
@@ -376,7 +387,8 @@ batchIndexCompute <- function(pDataTbl,
                                 # pasteOperator(vobsidColnames[1],vobsidColnames[2]),
                                 # pasteOperator(vvaridColnames[1],-1),
                                 # pasteOperator(vvaridColnames[2],-1),
-                                pasteOperator(vvalueColnames[1],vvalueColnames[2]),
+                                # pasteOperator(vvalueColnames[1],vvalueColnames[2]), ## fails if we match and remove points which are exactly
+                                                                                    ## same.. in the where clause in FLKNN
                                 pasteOperator(pasteOperator(vobsidColnames[1],
                                                             vBatchSize,"MOD"),
                                               pBatchNum,
@@ -409,27 +421,43 @@ batchIndexCompute <- function(pDataTbl,
                                               pSelect=genResultQuery(x))
                     })
 
-    genResultFLVector <- function(vResColname){
-        select <- new("FLSelectFrom",
-                connectionName = attr(connection,"name"), 
-                table_name = c(flt=vIndexTableName),
-                variables = list(
-                        obs_id_colname = "flt.searchid"),
-                whereconditions="",
-                order = "")
+    genResultFLMatrix <- function(vResColname){
+        variables <- list(
+                    MATRIX_ID="'%insertIDhere%'",
+                    rowIdColumn="searchid",
+                    colIdColumn="colIdColumn",
+                    valueColumn=vResColname)
 
-        ## cannot use dimnames
-        return(newFLVector(
-                select=select,
-                Dimnames=list(NULL,vResColname),
-                dims=c(nrow(pSearchTbl),1),
-                isDeep=FALSE,
-                type="double"))
+        sqlstr <- paste0("SELECT DENSE_RANK() OVER(ORDER BY searchid) AS rowIdColumn, \n ",
+                                "ROW_NUMBER() OVER(PARTITION BY searchid ORDER BY dist,matchid) AS colIdColumn, \n ",
+                                vResColname, " AS valueColumn \n ",
+                        " FROM ",vIndexTableName
+                        )
+
+        tblfunqueryobj <- new("FLTableFunctionQuery",
+                              connectionName = attr(connection,"name"),
+                              variables=list(
+                                  Matrix_ID="MATRIX_ID",
+                                  rowIdColumn="rowIdColumn",
+                                  colIdColumn="colIdColumn",
+                                  valueColumn="valueColumn"),
+                              whereconditions="",
+                              order = "",
+                              SQLquery=sqlstr)
+    
+        return(newFLMatrix(
+                  select = tblfunqueryobj,
+                  dims = c(nrow(pSearchTbl),k),
+                  Dimnames = list(NULL,NULL),
+                  type="double"))
     }
 
-    vIndexFLVector <- genResultFLVector("matchid")
+    vIndexFLMatrix <- genResultFLMatrix("matchid")
     if(pReturnDist)
-        vIndexFLVector <- list(index=vIndexFLVector,
-                                dist=genResultFLVector("dist"))
-    return(vIndexFLVector)
+        vIndexFLMatrix <- list(index=vIndexFLMatrix,
+                                dist=genResultFLMatrix("dist"))
+    return(vIndexFLMatrix)
 }
+
+#' @export
+knnx.index.FLMatrix <- knnx.index.FLTable

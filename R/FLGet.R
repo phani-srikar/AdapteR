@@ -98,6 +98,10 @@ setMethod("getObsIdSQLExpression",signature(object="FLTableMD"),
       function(object){
         return(getIndexSQLExpression(object,2))
         })
+setMethod("getObsIdSQLExpression",signature(object="FLIndexedValues"),
+      function(object){
+        return(getIndexSQLExpression(object,1))
+        })
 setGeneric("getVarIdSQLExpression",function(object)
       standardGeneric("getVarIdSQLExpression"))
 setMethod("getVarIdSQLExpression",signature(object="FLTable"),
@@ -107,6 +111,10 @@ setMethod("getVarIdSQLExpression",signature(object="FLTable"),
 setMethod("getVarIdSQLExpression",signature(object="FLTableMD"),
       function(object){
         return(getIndexSQLExpression(object,3))
+        })
+setMethod("getVarIdSQLExpression",signature(object="FLIndexedValues"),
+      function(object){
+        return(getIndexSQLExpression(object,2))
         })
 
 setMethod("getValueSQLExpression",signature(object="FLTable"),
