@@ -353,7 +353,7 @@ knnx.index.FLTable <- function(data,
 
 batchIndexCompute <- function(pDataTbl,
                               pSearchTbl,
-                              pNBatches=1000,
+                              pNBatches=100,
                               pReturnDist=FALSE,
                               k=1,
                               ...){
