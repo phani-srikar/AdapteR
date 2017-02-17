@@ -20,13 +20,10 @@ setClass("FLTableQuery",
              variables  = "list",
              connectionName = "character",
              whereconditions="character",
+             qualifyconditions="character",
              order = "character",
              group = "character"
          ))
-
-
-
-
 
 #' Models sparse data objects.
 #' 
@@ -565,13 +562,14 @@ setMethod("constructSelect", signature(object = "FLTableQuery"),
               return(paste0("SELECT ",
                             paste(colnames(object),collapse=", "),
                             " FROM ",tableAndAlias(object),
-                            constructWhere(c(constraintsSQL(object))),
+                            constructWhere(object),
                             constructGroupBy(GroupByVars=getGroupSlot(object),...),
                             constructOrder(orderVars=object@order,...),
                             "\n"))
           })
 
 
+## todo: this needs serious rework:  select@variables should be reflecting variables
 setMethod("constructSelect", signature(object = "FLTable"),
           function(object,...) {
             if(class(object@select)=="FLTableFunctionQuery") 
@@ -717,7 +715,7 @@ setMethod("constructSelect",
             "SELECT\n",
             constructVariables(variables),
             "\n FROM ",tableAndAlias(object),
-            constructWhere(c(constraintsSQL(object))),
+            constructWhere(object),
             constructGroupBy(GroupByVars=getGroupSlot(object),...),
             constructOrder(orderVars=getOrderSlot(object),...),
             "\n"))
@@ -760,30 +758,37 @@ setMethod("constructWhere", signature(conditions="FLTable",
           function(conditions, includeWhere=TRUE) {
     constructWhere(conditions@select,includeWhere)
 })
-
 setMethod("constructWhere", signature(conditions="FLSelectFrom",
                                       includeWhere="ANY"),
           function(conditions, includeWhere=TRUE) {
-    constructWhere(conditions@whereconditions,includeWhere)
+    ## browser()
+    paste0(
+        constructWhereClause(conditions@whereconditions,includeWhere),
+        constructWhereClause(conditions@qualifyconditions,includeWhere,clauseName="QUALIFY")
+    )
 })
-
 setMethod("constructWhere", signature(conditions="character",
                                       includeWhere="ANY"),
-          function(conditions, includeWhere=TRUE) {
+          function(conditions, includeWhere=TRUE)  constructWhereClause(conditions=conditions,
+                                                                        includeWhere=TRUE,
+                                                                        clauseName="WHERE"))
+    
+
+constructWhereClause <- function(conditions, includeWhere=TRUE, clauseName="WHERE") {
     conditions <- setdiff(conditions,c(NA,""))
     if(length(conditions)==0)
       return("")
     if(!is.character(conditions))
         stop("Provide constraints as character vector")
     if(!is.null(includeWhere) && includeWhere)
-        vWhere <- " WHERE "
+        vWhere <- paste0(" ",clauseName," ")
     else vWhere <- " "
     if(length(conditions)>0)
         paste0(vWhere,paste0("   (",conditions,")",
                                 collapse="   AND ")," ") ## \n creates problem in FLWideToDeep
     else
         ""
-})
+}
 
 
 setGeneric("viewSelectMatrix", function(object,localName, withName) {
@@ -883,6 +888,40 @@ setMethod("where<-",signature(x="FLSelectFrom"),
             value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
     print(value)
     x@whereconditions <- value
+    x
+})
+
+#' @export
+setGeneric("qualify",function(x)
+    standardGeneric("qualify"))
+
+setMethod("qualify",signature(x="FLIndexedValues"),
+          function(x) qualify(x@select))
+
+setMethod("qualify",signature(x="FLSelectFrom"),
+          function(x){
+    x@qualifyconditions
+})
+
+
+#' @export
+setGeneric("qualify<-",function(x,value)
+    standardGeneric("qualify<-"))
+
+
+setMethod("qualify<-",signature(x="FLTable"),
+          function(x,value) {
+    qualify(x@select) <- value
+    x
+})
+
+setMethod("qualify<-",signature(x="FLSelectFrom"),
+          function(x,value){
+    for(var in x@variables)
+        if(length(var)>0)
+            value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
+    print(value)
+    x@qualifyconditions <- value
     x
 })
 
