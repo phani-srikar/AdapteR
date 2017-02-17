@@ -2429,3 +2429,58 @@ coefficients.FLLinRegrSF<-function(object){
 	else rownames(ret)<- setdiff(colnames(object@table),all.vars(object@formula)[1])
 	return(data.matrix(ret))
 }
+
+
+getReferenceCategories <- function(data,pExcludeCols="",
+                                    classSpec=list(),
+                                    ...){
+    vcolnames <- colnames(data)
+    unused_cols <- c(pExcludeCols,
+                    getObsIdSQLExpression(data),
+                    getGroupIdSQLExpression(data))
+
+    ## Detect factors and assign classSpec
+    vfirstRow <- sqlQuery(getFLConnection(),
+                          limitRowsSQL(paste0("SELECT * FROM (",
+                                              constructSelect(data),") a "),1))
+    vfactorCols <- list()
+    ## apply(t,2,function(x){class(x[[1]])}) gives all character
+    for(i in setdiff(colnames(vfirstRow),
+                    c(unused_cols,names(classSpec),
+                    list(...)[["doNotTransform"]],
+                    "obs_id_colname",
+                    "group_id_colname"))){
+        if(length(i)==0) break;
+        if(is.factor(vfirstRow[[i]]) 
+            || is.character(vfirstRow[[i]])
+            || is.logical(vfirstRow[[i]])){
+                r<-as.character(vfirstRow[[i]])
+                names(r) <- i
+                vfactorCols <- c(vfactorCols,r)
+        }
+    }
+    if(length(vfactorCols)>0){
+        vrefVars <- sqlQuery(getFLConnection(),
+                        paste0("SELECT ",
+                            paste0("MIN(",names(vfactorCols),
+                                ") AS ",names(vfactorCols),
+                                collapse=","),
+                            " FROM (",constructSelect(data),") a "))
+        vtempList <- list()
+        vrefVarNames <- names(vrefVars)
+        for(i in colnames(vrefVars)){
+            ## Remove variables with NA
+            if(is.na(vrefVars[[i]]))
+                vrefVarNames <- setdiff(vrefVarNames,
+                                        i)
+            else if(is.logical(vrefVars[[i]]))
+                vtempList <- c(vtempList,
+                                levels(sqlQuery(getFLConnection(),
+                                            paste0("SELECT DISTINCT(",i,
+                                            ") FROM(",constructSelect(data),") a "))[[1]])[1])
+            else vtempList <- c(vtempList,as.character(vrefVars[[i]]))
+        }
+        names(vtempList) <- vrefVarNames
+        return(c(classSpec,vtempList))
+    }
+}
