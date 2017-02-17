@@ -567,6 +567,8 @@ isAliasSet <- function(object){
 # flv <- flSimple[subset]
 # flv[flv1]
 
+#' supports "optimize"
+options(FLwarnings="none")
 
 ## todo: optimize for R index vector
 #' @export
@@ -576,7 +578,8 @@ isAliasSet <- function(object){
     if(!is.FLSimpleVector(pSet)){
         if(!is.vector(pSet) && !is.FLVector(pSet)) 
             stop("pSet must be vector, FLVector or FLSimpleVector \n ")
-        warning("subset must be FLSimpleVector for efficient subsetting \n ")
+        if("optimize" %in% getOption("FLwarnings"))
+           warning("subset must be FLSimpleVector for efficient subsetting \n ")
         if(missing(pSet))
             pSet <- FLSerial(1,length(object))
         else{
