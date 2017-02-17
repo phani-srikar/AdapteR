@@ -869,10 +869,10 @@ setMethod("where<-",signature(x="FLTable"),
 
 setMethod("where<-",signature(x="FLSelectFrom"),
           function(x,value){
-    for(var in x@variables)
-        if(length(var)>0)
-            value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
-    print(value)
+    ## for(var in x@variables)
+    ##     if(length(var)>0)
+    ##         value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
+    ## print(value)
     x@whereconditions <- value
     x
 })
@@ -903,10 +903,10 @@ setMethod("qualify<-",signature(x="FLTable"),
 
 setMethod("qualify<-",signature(x="FLSelectFrom"),
           function(x,value){
-    for(var in x@variables)
-        if(length(var)>0)
-            value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
-    print(value)
+    ## for(var in x@variables)
+    ##     if(length(var)>0)
+    ##         value <- gsub(paste0("[^\\\\.]",var,"[ $]"),paste0(x@table_name,".",var),value)
+    ## print(value)
     x@qualifyconditions <- value
     x
 })

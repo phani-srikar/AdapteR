@@ -71,6 +71,38 @@ as.data.frame <- function(x, ...)
 }
 
 #' @export
+as.data.frame.FLTableDeep <- function(x, ...){
+    sqlstr <- constructSelect(x)
+    x <- populateDimnames(x)
+    sqlstr <- gsub("'%insertIDhere%'",1,sqlstr)
+    tryCatch(D <- sqlQuery(getFLConnection(x),sqlstr),
+      error=function(e){stop(e)})
+    ##browser()
+    vnames <- names(D)
+    vobsidcol <- getIndexSQLName(x,margin=1)
+    ##vnames <- vnames[-grep(vobsidcol,vnames,ignore.case=TRUE)]
+    names(D) <- toupper(names(D))
+    D <- plyr::arrange(D,D[[toupper(vobsidcol)]])
+    vvaridcol <- getIndexSQLName(x,margin=2)
+    vvaluecol <- getIndexSQLName(x,margin=3)
+    D <- reshape2::dcast(D, paste0(toupper(vobsidcol),
+                                   " ~ ",
+                                   toupper(vvaridcol)),
+                         value.var = toupper(vvaluecol))
+    ## i <- charmatch(rownames(x),D[[toupper(vobsidcol)]],nomatch=0)
+    ##                                     # print(i)
+    ## D <- D[i,]
+    ## if(any(D[[toupper(vobsidcol)]]!=1:nrow(D)))
+    ##     rownames(D) <- D[[toupper(vobsidcol)]]
+    ## D[[toupper(vobsidcol)]] <- NULL
+    ## For sparse deep table
+    D[is.na(D)] <- 0
+    if(!isDeep(x))
+        names(D) <- vnames
+    return(D)
+}
+
+#' @export
 as.data.frame.FLTable <- function(x, ...){
     sqlstr <- constructSelect(x)
     x <- populateDimnames(x)
@@ -84,14 +116,6 @@ as.data.frame.FLTable <- function(x, ...){
     ##names(D) <- toupper(names(D))
     names(D) <- names(x)
     ## D <- plyr::arrange(D,D[[toupper(vobsidcol)]])
-    if(isDeep(x)) {
-        vvaridcol <- getIndexSQLName(x,margin=2)
-        vvaluecol <- getIndexSQLName(x,margin=3)
-        D <- reshape2::dcast(D, paste0(toupper(vobsidcol),
-                             " ~ ",
-                             toupper(vvaridcol)),
-                   value.var = toupper(vvaluecol))
-    } 
     ## i <- charmatch(rownames(x),D[[toupper(vobsidcol)]],nomatch=0)
     ##                                     # print(i)
     ## D <- D[i,]
