@@ -2,6 +2,8 @@ Renv = new.env(parent = globalenv())
 Renv$train = rbind(iris3[1:25,,1], iris3[1:25,,2], iris3[1:25,,3])
 Renv$test = rbind(iris3[26:50,,1], iris3[26:50,,2], iris3[26:50,,3])
 Renv$cl = c(rep(1,25), rep(2,25), rep(3,25))
+Renv$data <- cbind(rnorm(10), rnorm(10))
+Renv$query <- cbind(rnorm(10), rnorm(10))
 
 FLenv <- as.FL(Renv)
 
@@ -90,5 +92,13 @@ test_that("knn Regression: check working",{
     result = eval_expect_equal({
     }, Renv, FLenv,
     expectation="length2")
+})
+
+
+test_that("knnx.index: Result correctness",{
+    result = eval_expect_equal({
+        result <- knnx.index(data, query, k=5)
+    }, Renv, FLenv,
+    expectation="result")
 })
 

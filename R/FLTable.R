@@ -566,7 +566,7 @@ setMethod("deepToWide",
 #' @param outObsIDCol name to give to the primary key column name of the output deep table
 #' @param outVarIDCol name to give to the varibales name column of the output deep table
 #' @param outValueCol name to give to the value column of the output deep table
-#' @return \code{wideToDeep} returns a FLTableDeep referencing the deep table, the original table and \code{AnalysisID} giving the AnalysisID of conversion
+#' @return \code{FLRegrDataPrep} returns a FLTableDeep referencing the deep table, the original table and \code{AnalysisID} giving the AnalysisID of conversion
 #' @examples
 #' widetable  <- FLTable("tblAbaloneWide", "ObsID")
 #' deeptable <- FLRegrDataPrep(widetable,"Diameter")

@@ -766,7 +766,7 @@ setMethod("constructWhere", signature(conditions="character",
     else vWhere <- " "
     if(length(conditions)>0)
         paste0(vWhere,paste0("   (",conditions,")",
-                                collapse="\n     AND ")," ")
+                                collapse="   AND ")," ") ## \n creates problem in FLWideToDeep
     else
         ""
 })
@@ -839,15 +839,14 @@ getSelectSlot <- function(x){
 }
 
 #' @export
-setGeneric("where",function(x,value)
+setGeneric("where",function(x)
     standardGeneric("where"))
 
-
-setMethod("where",signature(x="FLTable"),
+setMethod("where",signature(x="FLIndexedValues"),
           function(x) where(x@select))
 
 setMethod("where",signature(x="FLSelectFrom"),
-          function(x,value){
+          function(x){
     x@whereconditions
 })
 
