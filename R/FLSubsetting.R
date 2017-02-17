@@ -89,10 +89,10 @@ NULL
     object <- populateDimnames(object)
     if(is.FLVector(rows)) rows <- as.vector(rows)
     if(is.FLVector(cols)) cols <- as.vector(cols)
-    if(is.numeric(rows))
-        newrownames <- object@Dimnames[[1]][rows]
-    else
-        newrownames <- rows
+    ## if(is.numeric(rows))
+    ##     newrownames <- object@Dimnames[[1]][rows]
+    ## else
+    newrownames <- rows
 
     if(is.numeric(cols))
         newcolnames <- object@Dimnames[[2]][cols]
@@ -106,47 +106,39 @@ NULL
         if(any(is.na(newcolnames)))
             stop("index out of bounds")
     ##browser()
-    if(missing(cols))
-    {
-        if (!missing(rows)) {
-            if(!setequal(object@Dimnames[[1]],
-                         newrownames))
-                object@select@whereconditions <- c(object@select@whereconditions,
-                                            inCondition(paste0(getVariables(object)$obs_id_colname),
-                                                        newrownames))
-            object@Dimnames <- list(newrownames,
-                                   object@Dimnames[[2]])
+    if (!missing(rows)) {
+        if(is.character(rows)) { ## construct where clause
+            if(!setequal(object@Dimnames[[1]], newrownames))
+                object@select@whereconditions <-
+                    c(object@select@whereconditions,
+                      inCondition(paste0(getVariables(object)$obs_id_colname),
+                                  newrownames))
+            object@Dimnames[[1]] = newrownames
+        } else if(is.numeric(rows)){
+            if(!setequal(1:nrow(object), newrownames))
+                qualify(object) <-
+                    c(qualify(object),
+                      paste0("ROW_NUMBER() OVER ",
+                             "(ORDER BY ",getVariables(object)$obs_id_colname,
+                             ") in (",
+                             paste0(newrownames,collapse=", "),
+                             ")"))
         }
-    } else if(missing(rows)) { ## !missing(cols)
+        object@dims[[1]] <- length(newrownames)
+    }
+    if(!missing(cols)) { ## !missing(cols)
         ifelse(any(is.na(as.numeric(object@Dimnames[[1]]))),
                newrownames <- sort(object@Dimnames[[1]]),
                newrownames <- sort(as.numeric(object@Dimnames[[1]])))
-        object@Dimnames <- list(newrownames,
-                                newcolnames)
-        object@dims[[2]] <- length(newcolnames)
-        if(isDeep(object)){
+        if(isDeep(object)  & !setequal(object@Dimnames[[2]], newcolnames)){
             object@select@whereconditions <-
                 c(object@select@whereconditions,
                   inCondition(paste0(getVariables(object)$var_id_colname),
                               object@Dimnames[[2]]))
         }
-    } else {  ## !missing(cols) and !missing(rows)
-        ##browser()
-        if(!setequal(object@Dimnames[[1]], newrownames))
-            object@select@whereconditions <-
-            c(object@select@whereconditions,
-              inCondition(paste0(getVariables(object)$obs_id_colname),
-                          newrownames))
-        if(isDeep(object) & !setequal(object@Dimnames[[2]], newcolnames)){
-            object@select@whereconditions <-
-                c(object@select@whereconditions,
-                  inCondition(paste0(getVariables(object)$var_id_colname),
-                              newcolnames))
-        }
-        object@Dimnames = list(newrownames, newcolnames)
-        object@dims[[1]] <- length(newrownames)
+        object@Dimnames[[2]] <-  newcolnames
         object@dims[[2]] <- length(newcolnames)
-    }
+    } 
     if(drop & (ncol(object)==1 | nrow(object) == 1))
     {
       vcolnames <- object@Dimnames[[2]]
