@@ -119,7 +119,11 @@ NULL
                 qualify(object) <-
                     c(qualify(object),
                       paste0("ROW_NUMBER() OVER ",
-                             "(ORDER BY ",getVariables(object)$obs_id_colname,
+                             "(",
+                             ifelse(isDeep(object),
+                                    paste0("PARTITION BY ",getVariables(object)$var_id_colname," "),
+                                    ""),
+                             "ORDER BY ",getVariables(object)$obs_id_colname,
                              ") in (",
                              paste0(newrownames,collapse=", "),
                              ")"))
