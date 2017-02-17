@@ -683,6 +683,9 @@ setGeneric("as.FLSimpleVector", function(pObject,...) {
 setMethod("as.FLSimpleVector", signature(pObject = "FLVector"),
           function(pObject,...)
             as.FLSimpleVector.FLVector(pObject=pObject,...))
+setMethod("as.FLSimpleVector", signature(pObject = "ANY"),
+          function(pObject,...)
+            as.FLVector(object=pObject,...))
 
 as.FLSimpleVector.FLVector <- function(pObject,...){
     if(is.QueryVector(pObject) 

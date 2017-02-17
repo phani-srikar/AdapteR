@@ -2021,29 +2021,7 @@ predict.lmGeneric <- function(object,
 								pInputParams=vinputCols)
 	AnalysisID <- checkSqlQueryOutput(AnalysisID)
 
-    sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
-	# sqlstr <- paste0(" SELECT '%insertIDhere%' AS vectorIdColumn,",
-	# 					vobsid," AS vectorIndexColumn,",
-	# 					vfcalls["valcolnamescoretable"]," AS vectorValueColumn",
-	# 				" FROM ",scoreTable)
-
-	tblfunqueryobj <- new("FLTableFunctionQuery",
-                        connectionName = getFLConnectionName(),
-                        variables = list(
-			                obs_id_colname = "vectorIndexColumn",
-			                cell_val_colname = "vectorValueColumn"),
-                        whereconditions="",
-                        order = "",
-                        SQLquery=sqlstr)
-
-	flv <- newFLVector(
-				select = tblfunqueryobj,
-				Dimnames = list(rownames(newdata),
-								"vectorValueColumn"),
-                dims = as.integer(c(newdata@dims[1],1)),
-				isDeep = FALSE)
-
-	return(flv)
+    getFittedValuesVector(object,newdata,scoreTable)
 }
 
 ## move to file lm.R
@@ -2353,23 +2331,23 @@ setDefaultsRegrDataPrepSpecs <- function(x,values){
     x
 }
 
-getFittedValuesLogRegrSQL <- function(object,newdata,scoreTable){
-    UseMethod("getFittedValuesLogRegrSQL",newdata)
+getFittedValuesVector <- function(object,newdata,scoreTable){
+    UseMethod("getFittedValuesVector",newdata)
 }
 
-getFittedValuesLogRegrSQL.FLTable.Hadoop <- function(object,newdata,scoreTable){
+getFittedValuesVector.FLTable.Hadoop <- function(object,newdata,scoreTable){
     vobsid <- "ObsID"
     vfcalls <- object@vfcalls
-    getFLVectorTableFunctionQuerySQL(indexColumn=vobsid,
-                                    valueColumn=vfcalls["valcolnamescoretable"],
-                                    FromTable=scoreTable)
+    FLSimpleVector(table=scoreTable,id=vobsid,value=vfcalls["valcolnamescoretable"],
+                   length=nrow(newdata))
 }
-getFittedValuesLogRegrSQL.default <- function(object,newdata,scoreTable){
+getFittedValuesVector.default <- function(object,newdata,scoreTable){
     vobsid <- getObsIdSQLExpression(newdata)
     vfcalls <- object@vfcalls
-    getFLVectorTableFunctionQuerySQL(indexColumn=vobsid,
-                                    valueColumn=vfcalls["valcolnamescoretable"],
-                                    FromTable=scoreTable)
+    FLSimpleVector(table=scoreTable,
+                   id=vobsid,
+                   value=vfcalls["valcolnamescoretable"],
+                   length=nrow(newdata))
 }
 
 #' @export

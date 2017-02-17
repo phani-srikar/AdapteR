@@ -141,14 +141,47 @@ newFLVector <- function(...) {
                    vtemp)))
 }
 
+validity.FLSimpleVector <- function(x){
+    if(is.null(names(x@select@variables)))
+        stop("Variables in select need to have alias names!")
+}
+
 #' An S4 class to represent FLVector
 #'
 #' @export
 setClass("FLSimpleVector",
          contains="FLIndexedValues",
          slots = list(
-         ),prototype = prototype(type="double")
+         ),prototype = prototype(type="double"),
+         validity = validity.FLSimpleVector
          )
+
+
+#' @export
+FLSimpleVector <- function(table, id, value, order=id,length=NULL,...){
+    ##browser()
+    if(is.null(names(table))) names(table) <- table
+    X <- unique(c(id=id,val=value,O=order))
+    names(X) <- X
+    variables <- as.list(X)
+    R <- new("FLSimpleVector",
+        select=new("FLSelectFrom",
+                   table_name=table,
+                   connectionName=getFLConnectionName(),
+                   variables=variables,
+                   order=order,
+                   ...),
+        dimColumns = c(id,value),
+        ##names=NULL,
+        Dimnames = list(NULL),
+        type     = "integer"
+        )
+    if(is.null(length))
+        length <- sqlQuery(getFLConnection(),
+                          paste0("select count(",id,") from ",getTableNameSlot(R),constructWhere(R)))[1,1]
+    R@dims <- length
+    R
+}
 
 
 #' An S4 class to represent FLTable, an in-database data.frame.
@@ -752,7 +785,11 @@ constructGroupBy <- function(GroupByVars,...) {
 setGeneric("constructWhere", function(conditions,
                                       includeWhere=TRUE)
     standardGeneric("constructWhere"))
-
+setMethod("constructWhere", signature(conditions="FLIndexedValues",
+                                      includeWhere="ANY"),
+          function(conditions, includeWhere=TRUE) {
+    constructWhere(conditions@select,includeWhere)
+})
 setMethod("constructWhere", signature(conditions="FLTable",
                                       includeWhere="ANY"),
           function(conditions, includeWhere=TRUE) {
