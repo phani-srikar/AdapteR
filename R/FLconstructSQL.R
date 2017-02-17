@@ -165,7 +165,7 @@ setClass("FLSimpleVector",
 setClass("FLSimpleWideTable",
          contains="FLIndexedValues",
          slots = list(
-             dims = "integer"
+             dims = "numeric"
              ##mapSelect = "FLSelectFrom",          
              ))
 
@@ -487,6 +487,20 @@ as.vector.FLSimpleVector <- function(object,mode="any")
     if(!is.null(names(object)))
         names(vres) <- as.vector(names(object))
     return(vres)
+}
+
+#' Converts FLVector object to vector in R
+#' @export
+as.data.frame.FLSimpleWideTable <- function(object,mode="any")
+{
+    x <- sqlQuery(connection,constructSelect(object))
+    x
+    ## Required as in Aster output cols are always lowercase
+    # colnames(x) <- toupper(colnames(x))
+    # vres <- x[[toupper(object@dimColumns[[2]])]]
+    # if(!is.null(names(object)))
+    #     names(vres) <- as.vector(names(object))
+    # return(vres)
 }
 
 #' @export
