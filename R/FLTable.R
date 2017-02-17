@@ -203,6 +203,8 @@ setMethod("show","FLTable",function(object) print(as.data.frame(object)))
   property <- property[1]
   if(!is.character(property))
   return(NULL)
+  if(isDeep(object) && !property %in% colnames(object))
+    property <- getVarIDIndex(object,property)
   if(property %in% colnames(object))
   return(object[,as.character(property)])
   else return(NULL)
@@ -241,6 +243,7 @@ setMethod("show","FLTable",function(object) print(as.data.frame(object)))
 # head(irisFL)
 #' @export
 `$<-.FLTable` <- function(x,name,value){
+    browser()
   vcolnames <- x@Dimnames[[2]]
   vtablename <- getTableNameSlot(x)
   name <- gsub("\\.","",name,fixed=TRUE)
@@ -288,17 +291,23 @@ setMethod("show","FLTable",function(object) print(as.data.frame(object)))
                     " WHERE a.vectorIndexColumn = ",getVariables(x)[["obs_id_colname"]],";")
   }
   else{
-    # browser()
+    browser()
 
     if(is.na(as.numeric(name)))
         name <- getVarIDIndex(x,name)
 
-    if(tolower(name)%in%tolower(vcolnames))
-    sqlstr <- paste0("UPDATE ",vtablename," \n ",
+    if(tolower(name)%in%tolower(vcolnames)){
+        value <- setAlias(value,"a")
+        sqlstr <- paste0("UPDATE ",vtablename," \n ",
                     " FROM(",constructSelect(value),") a \n ",
-                    " SET ",getVariables(x)[["cell_val_colname"]]," = a.vectorValueColumn \n ",
-                    " WHERE a.vectorIndexColumn = ",getVariables(x)[["obs_id_colname"]],
-                            " AND ",getVariables(x)[["var_id_colname"]]," IN (",paste0(name,collapse=","),");")
+                    " SET ",getVariables(x)[["cell_val_colname"]]," = a.",getValueSQLName(value)," \n ",
+                    " WHERE a.",getObsIdSQLName(value)," = ",getVariables(x)[["obs_id_colname"]],
+                            " AND ",getVariables(x)[["var_id_colname"]]," IN (",paste0(name,collapse=","),")",
+                            " AND ",getVariables(x)[["var_id_colname"]]," = a.",getVarIdSQLName(value))
+        cat(sqlstr)
+                            # " AND QUALIFY() ROW_NUMBER()OVER(ORDER BY a.",getVarIdSQLName(value),
+                                # " = QUALIFY() ROW_NUMBER()OVER(ORDER BY ",getVariables(x)[["var_id_colname"]],");")
+    }
     else{
       sqlstr <- paste0(" SELECT a.vectorIndexColumn, \n ",
                             name,
@@ -1203,7 +1212,6 @@ getMappingFLTable <- function(pAnalysisID){
 }
 
 getVarIDIndex <- function(deepTbl,name){
-    browser()
     vVarIDMapping <- sqlQuery(getFLConnection(),
                             constructSelect(deepTbl@mapSelect))
     colnames(vVarIDMapping) <- tolower(colnames(vVarIDMapping))

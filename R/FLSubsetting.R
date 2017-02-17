@@ -80,7 +80,6 @@ NULL
 #' @export
 `[.FLTable`<-function(object,rows=1,cols=1,drop=TRUE)
 {
-    ##browser()
     vtype <- typeof(object)
     if(class(object@select)=="FLTableFunctionQuery")
       object <- store(object)
@@ -135,14 +134,22 @@ NULL
                newrownames <- sort(object@Dimnames[[1]]),
                newrownames <- sort(as.numeric(object@Dimnames[[1]])))
         if(isDeep(object)  & !setequal(object@Dimnames[[2]], newcolnames)){
+            # qualify(object) <-
+            #         c(qualify(object),
+            #           paste0("ROW_NUMBER() OVER ",
+            #                  "(PARTITION BY ",getVariables(object)$obs_id_colname," ",
+            #                  "ORDER BY ",getVariables(object)$var_id_colname,
+            #                  ") in (",
+            #                  paste0(newcolnames,collapse=", "),
+            #                  ")"))
             object@select@whereconditions <-
                 c(object@select@whereconditions,
                   inCondition(paste0(getVariables(object)$var_id_colname),
-                              object@Dimnames[[2]]))
+                              newcolnames))
         }
         object@Dimnames[[2]] <-  newcolnames
         object@dims[[2]] <- length(newcolnames)
-    } 
+    }
     if(drop & (ncol(object)==1 | nrow(object) == 1))
     {
       vcolnames <- object@Dimnames[[2]]

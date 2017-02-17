@@ -497,6 +497,7 @@ as.sparseMatrix <- function(object)
 
 #' @export
 as.sparseMatrix.FLMatrix <- function(object) {
+    ##browser()
     sqlstr <- gsub("'%insertIDhere%'",1,constructSelect(object, joinNames=FALSE))
     tryCatch(valuedf <- sqlQuery(getFLConnection(object), sqlstr),
       error=function(e){stop(e)})
@@ -698,18 +699,38 @@ as.FLMatrix.FLTable <- function(object,
   if(!isDeep(object))
   object <- wideToDeep(object=object)
 
-  vdimnames <- lapply(dimnames(object),
+    variables <- list(
+        MATRIX_ID="'%insertIDhere%'",
+        rowIdColumn=getVariables(object)[["obs_id_colname"]],
+        colIdColumn=getVariables(object)[["var_id_colname"]],
+        valueColumn=getVariables(object)[["cell_val_colname"]])
+
+    vdimnames <- lapply(dimnames(object),
                   function(x){
                       if(all(x==1:length(x)))
                       return(NULL)
                       else return(x)
                   })
-  return(FLMatrix(table_name=getTableNameSlot(object),
-                  row_id_colname=getVariables(object)[["obs_id_colname"]],
-                  col_id_colname=getVariables(object)[["var_id_colname"]],
-                  cell_val_colname=getVariables(object)[["cell_val_colname"]],
-                  dimnames=vdimnames,
-                  whereconditions=object@select@whereconditions))
+
+    select <- new("FLSelectFrom",
+                  connectionName = attr(connection,"name"),
+                  table_name = getTableNameSlot(object),
+                  variables=variables,
+                  whereconditions=object@select@whereconditions,
+                  order = "")
+    
+    RESULT <- newFLMatrix(
+                  select = select,
+                  dims = as.integer(object@dims),
+                  Dimnames = vdimnames,
+                  type=object@type)
+  # return(FLMatrix(table_name=getTableNameSlot(object),
+  #                 row_id_colname=getVariables(object)[["obs_id_colname"]],
+  #                 col_id_colname=getVariables(object)[["var_id_colname"]],
+  #                 cell_val_colname=getVariables(object)[["cell_val_colname"]],
+  #                 dimnames=vdimnames,
+  #                 whereconditions=object@select@whereconditions))
+    RESULT
 }
 ######################################################################################################################
 #' casting to FLVector
