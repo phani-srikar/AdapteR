@@ -56,27 +56,27 @@ matchit <- function(formula, data, method = "nearest", distance = "logit",
     })
     ##
     ## create a table for Matchit
-    sel <- setAlias(scores, "predTab")@select
+    sel <- setAlias(scores, "predTab")
     Y <- setAlias(data,"respTab")
     obsid <- getIndexSQLExpression(Y,1)
-    sel@table_name <- c(sel@table_name,getTableNameSlot(Y))
-    sel@variables <- c(sel@variables,
-                       exposure=paste0("respTab.",all.vars(update(fit@formula, .~0))))
+    sel@select@table_name <- c(sel@select@table_name,getTableNameSlot(Y))
+    sel@select@variables <- c(sel@select@variables,
+                              exposure=paste0("respTab.",all.vars(update(fit@formula, .~0))))
     where(sel) <- c(where(sel),paste0("predTab.obsid = ",obsid))
-    sel@order <- ""
+    sel@select@order <- ""
     cat(constructSelect(sel))
     e <- gen_unique_table_name("matchit")
     createTable(pTableName=e, pSelect=constructSelect(sel),
-                pPrimaryKey="obsid",pWithData = TRUE)
+                pPrimaryKey=getIndexSQLName(sel,1),pWithData = TRUE)
 
     TIME$matchit <- system.time({
         ret <- sqlStoredProc(connection,
                              "FLMatchIt",
                              TableName = e,
-                             ObsIDColName = "obsid",
+                             ObsIDColName = getIndexSQLName(sel,1), 
                              TreatmentColName = "exposure",
-                             PropScoreCol = "Y",
-                             MatchOrderCol = "Y",
+                             PropScoreCol = getValueSQLName(sel),
+                             MatchOrderCol = getValueSQLName(sel),
                              TableOutput = 1,
                              outputParameter = c(OutTable = 'a')
                              )
@@ -85,8 +85,8 @@ matchit <- function(formula, data, method = "nearest", distance = "logit",
         model=fit,
         propensities=scores,
         formula=formula,
-        treat=FLSimpleVector(e,"obsid","exposure"),
-        discarded=FLSimpleVector(ret$OutTable,"obsid","obsid")
+        treat=FLSimpleVector(e,getIndexSQLName(sel,1),"exposure"),
+        discarded=FLSimpleVector(ret$OutTable,getIndexSQLName(sel,1),getIndexSQLName(sel,1))
     ),
     timing=TIME,
     class="FLmatchit")
@@ -100,7 +100,7 @@ matchit <- function(formula, data, method = "nearest", distance = "logit",
 #' @param select a FLSimpleVector containgin all obsids
 #' @param exclude a flag whether to constrict to the obsids in select or to exclude the ids in select
 restrictToObsids <- function(table, select,exclude=FALSE){
-    unsel <- setAlias(excl, "excl")
+    unsel <- setAlias(select, "adpaterSel")
     unsel@select@order <- ""
     subdat <- table
     obsid <- getIndexSQLExpression(subdat,1)

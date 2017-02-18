@@ -911,8 +911,13 @@ setMethod("where",signature(x="FLSelectFrom"),
 setGeneric("where<-",function(x,value)
     standardGeneric("where<-"))
 
-
 setMethod("where<-",signature(x="FLTable"),
+          function(x,value) {
+    where(x@select) <- value
+    x
+})
+
+setMethod("where<-",signature(x="FLIndexedValues"),
           function(x,value) {
     where(x@select) <- value
     x
