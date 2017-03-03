@@ -1,0 +1,7 @@
+#Platform,ConnectionType,DSN,DB,host,user,password
+TD,ODBC,Gandalf,FL_TRAIN,,,,
+Hadoop,ODBC,ambari03,dblytix,,,,
+TD,JDBC,,FL_TRAIN,jdbc:teradata://10.200.4.116,mbondre,fzzlpass
+Hadoop,JDBC,,dblytix,jdbc:hive2://192.168.2.80:10003,hive,,
+TDAster,ODBC,AsterVM,fuzzylogix,,,,
+TDAster,JDBC,,fuzzylogix,jdbc:ncluster://192.168.100.220:2406,db_superuser,db_superuser

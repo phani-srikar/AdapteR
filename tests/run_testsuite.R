@@ -18,7 +18,7 @@ option_list = list(
                 help="password [default= %default]",
                 type="character"),
     make_option(c("-D", "--database"),
-                default="Fl_demo", 
+                default="FL_TRAIN", 
                 help="database [default= %default]",
                 type="character"),
     make_option(c("-c", "--dropTables"),
@@ -42,9 +42,12 @@ option_list = list(
     make_option(c("-P", "--platform"),
                 default="TD",
                 help="TDAster,TD and Hadoop supported",
+                type="character"),
+    make_option(c("-j", "--jdk"),
+                default="NULL",
+                help="path to jdk.Required for RJDBC",
                 type="character")
 )
-
 
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
@@ -64,10 +67,14 @@ print(opt$directory)
 
 # cat(paste0("You requested to run tests in ",opt$directory,"\nTrying to go to directory\ncd ",basedir,"\nand build and test package\n",packagedir,"\n"))
 if(opt$AdapteR=="require"){
+    if(!grepl("^jdbc",opt$host))
+        library(RODBC)
     ##phani: do we need to set this?
     # setwd(basedir)
     require("AdapteR")
 } else {
+    if(!grepl("^jdbc",opt$host))
+        library(RODBC)
     ##phani: I think git pull should be done outside the sript
     ## As this might change my working branch
     # cat(paste0("running git pull\n"))
@@ -80,6 +87,9 @@ if(opt$AdapteR=="require"){
 }
 
 if(grepl("^jdbc",opt$host)){
+    if(!(opt$jdk == "NULL"))
+    Sys.setenv(JAVA_HOME=opt$jdk)
+    library(RJDBC)
     connection <-
         flConnect(
             host     = opt$host,
@@ -101,6 +111,9 @@ if(grepl("^jdbc",opt$host)){
               platform=opt$platform)
 }
 
+## check if connection is working:
+sqlQuery(connection,paste0("SELECT * FROM ",getTestTableName("tblmatrixmulti"),
+                            " WHERE matrix_id=1 "))
 setupls <- ls()
 setwd(paste0(packagedir,"/tests"))
 cat(paste0("Running tests from tests directory",getwd(),"\n"))
