@@ -87,6 +87,7 @@ if(opt$AdapteR=="require"){
 }
 
 if(grepl("^jdbc",opt$host)){
+    vconnectionType <- "JDBC"
     if(!(opt$jdk == "NULL"))
     Sys.setenv(JAVA_HOME=opt$jdk)
     library(RJDBC)
@@ -105,10 +106,13 @@ if(grepl("^jdbc",opt$host)){
             drop=opt$dropTables,
             verbose=TRUE,
             temporary=opt$temporary)
+    vPlatform <- getPlatformName(getDriverClass(opt$host))
 } else {
+    vconnectionType <- "ODBC"
     connection <- flConnect(odbcSource=opt$host,
               database=opt$database,
               platform=opt$platform)
+    vPlatform <- opt$platform
 }
 
 ## check if connection is working:
@@ -123,5 +127,5 @@ rm(list=setupls)
 ls()
 sha <- system2("git", c("log", "--pretty=format:'%h'", "-n","1"),stdout = TRUE)
 branch <- gsub("^.*/","",system2("git", c("symbolic-ref", "HEAD"),stdout = TRUE))
-save.image(file=paste0("alltests_",Sys.Date(),"_",branch,"_",sha,".rda"))
+save.image(file=paste0(vPlatform,"_",vconnectionType,"_alltests_",Sys.Date(),"_",branch,"_",sha,".rda"))
 setwd("..")

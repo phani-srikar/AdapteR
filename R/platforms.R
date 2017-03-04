@@ -117,17 +117,8 @@ flConnect <- function(host=NULL,database=NULL,user=NULL,passwd=NULL,
         if(is.null(passwd)) passwd <- readline("Your password:  ")
         # if(is.null(driverClass)) driverClass <- readline("driverClass:  ")
         if(is.null(jdbc.jarsDir)) stop("provide fully qualified path to jar files vector \n ")
-        if(is.null(driverClass)){
-            getDriverClass <- function(pHost){
-                vdrvClasses <- c(teradata="com.teradata.jdbc.TeraDriver",
-                                ncluster="com.asterdata.ncluster.Driver",
-                                hive2="org.apache.hive.jdbc.HiveDriver")
-                vindex <- sapply(names(vdrvClasses),
-                                function(x) grepl(x,pHost))
-                return(vdrvClasses[vindex])
-            }
+        if(is.null(driverClass))
             driverClass <- getDriverClass(host)
-        }
 
 
         if(!grepl("^jdbc:",host)) stop(paste0("host needs to start with 'jdbc:' \n "))
@@ -186,26 +177,7 @@ flConnect <- function(host=NULL,database=NULL,user=NULL,passwd=NULL,
     if(is.null(connection))
         stop("Please provide either odbcSource for connecting to an ODBC source; or provide host, database, user, passwd for connecting to JDBC")
 
-    platformMap <- c("teradata"                        ="TD",
-                     "com.teradata.jdbc.TeraDriver"    ="TD",
-                     "aster"                           ="TDAster",
-                     "astertd"                         ="TDAster",
-                     "teradataaster"                   ="TDAster",
-                     "com.asterdata.ncluster.Driver"   ="TDAster",
-                     "hive"                            ="Hadoop",
-                     "cloudera"                        ="Hadoop",
-                     "clouderahive"                    ="Hadoop",
-                     "hive2"                           ="Hadoop",
-                     "org.apache.hive.jdbc.HiveDriver" ="Hadoop",
-                     "TDAster"                         ="TDAster",
-                     "TD"                              ="TD",
-                     "Hadoop"                          ="Hadoop")
-    platform <- platformMap[driverClass]
-    if(length(platform)==0) platform <- list(...)$platform ## if platform cannot be determined from driverClass, use platform argument
-    if(!is.null(platform)) {
-        if(!(platform %in% unique (platformMap))) ## use map
-            platform <- platformMap[[platform]]
-    }
+    platform <- getPlatformName(driverClass,...)
 
     ## store database where tests need to be run
     TestDatabase <- list(...)$TestDatabase
@@ -526,4 +498,38 @@ checkHypoSystemTableExists <- function(){
         t <- as.FLTable(vdf,tableName="fzzlARHypTestStatsMap",
                         temporary=FALSE,drop=TRUE)
         
+}
+
+## get driver class from host address: jdbc connection
+getDriverClass <- function(pHost){
+    vdrvClasses <- c(teradata="com.teradata.jdbc.TeraDriver",
+                    ncluster="com.asterdata.ncluster.Driver",
+                    hive2="org.apache.hive.jdbc.HiveDriver")
+    vindex <- sapply(names(vdrvClasses),
+                    function(x) grepl(x,pHost))
+    return(vdrvClasses[vindex])
+}
+
+getPlatformName <- function(pDriverClass,...){
+    platformMap <- c("teradata"                        ="TD",
+                     "com.teradata.jdbc.TeraDriver"    ="TD",
+                     "aster"                           ="TDAster",
+                     "astertd"                         ="TDAster",
+                     "teradataaster"                   ="TDAster",
+                     "com.asterdata.ncluster.Driver"   ="TDAster",
+                     "hive"                            ="Hadoop",
+                     "cloudera"                        ="Hadoop",
+                     "clouderahive"                    ="Hadoop",
+                     "hive2"                           ="Hadoop",
+                     "org.apache.hive.jdbc.HiveDriver" ="Hadoop",
+                     "TDAster"                         ="TDAster",
+                     "TD"                              ="TD",
+                     "Hadoop"                          ="Hadoop")
+    platform <- platformMap[pDriverClass]
+    if(length(platform)==0) platform <- list(...)$platform ## if platform cannot be determined from driverClass, use platform argument
+    if(!is.null(platform)) {
+        if(!(platform %in% unique (platformMap))) ## use map
+            platform <- platformMap[[platform]]
+    }
+    return(platform)
 }
