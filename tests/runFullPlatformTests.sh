@@ -23,6 +23,7 @@ configFILE="$FILESPATH/connectionConfig.txt"
 cat "$configFILE" | while read platform ctype dsn DB host usr pwd
 do
     echo -e " \n \n ######### Testing AdapteR on : $platform : using : $ctype : ########### \n \n "
-    ./MasterTestScriptAdapteR.sh "$platform" "$ctype" "$configFILE" "$FILESPATH" "$2" "$resultsPath"
+    ./MasterTestScriptAdapteR.sh "$platform" "$ctype" "$configFILE" "$FILESPATH" "$2" "$branch" "$resultsPath"
     echo -e " \n \n ######### END Testing AdapteR on : $platform : using : $ctype : END END : ############## \n \n "
 done
+rm -rf AdapteR
