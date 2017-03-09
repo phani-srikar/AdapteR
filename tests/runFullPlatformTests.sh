@@ -1,8 +1,8 @@
 #!/bin/bash
 #Args:ScriptsPath, JarsPath, gitBranchToTest, resultsPath
-#runFullPlatformTests.sh  "P:/" "C:/Users/phani/Downloads" "AutoTesting" "C:/Users/phani/Desktop"
+#runFullPlatformTests.sh  "P:" "C:/Users/phani/Downloads" "knn" "C:/Users/phani/Desktop"
 #To run only ODBC, edit the config file to contain only ODBC entries and use:
-#runFullPlatformTests.sh  "P:/" "" "AutoTesting" ""
+#runFullPlatformTests.sh  "P:" "" "" ""
 export IFS=","
 cd $1
 rm -rf AdapteR

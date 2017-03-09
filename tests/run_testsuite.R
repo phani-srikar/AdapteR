@@ -46,6 +46,10 @@ option_list = list(
     make_option(c("-j", "--jdk"),
                 default="NULL",
                 help="path to jdk.Required for RJDBC",
+                type="character"),
+    make_option(c("-R", "--results"),
+                default="",
+                help="path to store the result .rda images",
                 type="character")
 )
 
@@ -118,14 +122,17 @@ if(grepl("^jdbc",opt$host)){
 ## check if connection is working:
 sqlQuery(connection,paste0("SELECT * FROM ",getTestTableName("tblmatrixmulti"),
                             " WHERE matrix_id=1 "))
-setupls <- ls()
+
 setwd(paste0(packagedir,"/tests"))
 cat(paste0("Running tests from tests directory",getwd(),"\n"))
 
+vresultsPath <- opt$results
+if(!vresultsPath=="")
+    vresultsPath <- paste0(vresultsPath,"/")
 source("alltests.R")
-rm(list=setupls)
-ls()
 sha <- system2("git", c("log", "--pretty=format:'%h'", "-n","1"),stdout = TRUE)
 branch <- gsub("^.*/","",system2("git", c("symbolic-ref", "HEAD"),stdout = TRUE))
-save.image(file=paste0(vPlatform,"_",vconnectionType,"_alltests_",Sys.Date(),"_",branch,"_",sha,".rda"))
+save.image(file=paste0(vresultsPath,vPlatform,"_",vconnectionType,"_alltests_",Sys.Date(),"_",branch,"_",sha,".rda"))
+setupls <- ls()
+rm(list=setupls)
 setwd("..")

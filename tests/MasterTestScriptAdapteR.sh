@@ -16,12 +16,12 @@ echo $"$branch" > $TEMP_FILE
 if [ "$(grep -c "tar.gz" $TEMP_FILE)" = 1 ]
 then
     echo $'remove.packages("AdapteR")
-install.packages("$INSTALLSCRIPT",repos=NULL,type="source")' > $INSTALLSCRIPT
+install.packages("$branch",repos=NULL,type="source")' > $INSTALLSCRIPT
 else
     echo $"if(require('AdapteR'))
 remove.packages('AdapteR')
 library(devtools)
-install_github('Fuzzy-Logix/AdapteR',ref='$branch')" > $INSTALLSCRIPT
+install_github('phanisrikar93/AdapteR',ref='$branch')" > $INSTALLSCRIPT
 fi
 #cat $INSTALLSCRIPT
 Rscript "$INSTALLSCRIPT"
