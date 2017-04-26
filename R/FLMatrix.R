@@ -660,3 +660,44 @@ setDimnames <- function(x,value){
   x@mapSelect <- new("FLSelectFrom")
   x
 }
+
+
+#' @export
+summary.FLMatrix <- function(pObject){
+    vValueColumn <- getValueSQLName(pObject)
+    vColIdColumn <- getIndexSQLName(pObject,2)
+    vsqlstr <- paste0("SELECT ",vColIdColumn," AS indexcol, \n ",
+                        "FLMin(",vValueColumn,") AS vmin, \n ",
+                        "FLMax(",vValueColumn,") AS vmax, \n ",
+                        "FLMean(",vValueColumn,") AS vmean \n ",
+                        "FROM (",constructSelect(pObject),") a \n ",
+                      " GROUP BY ",vColIdColumn," \n ",
+                      " ORDER BY ",vColIdColumn)
+    vResultStats1 <- sqlQuery(getFLConnection(),vsqlstr)
+    vResultStats2 <- data.frame(indexcol=1:ncol(pObject))
+    for(i in c(0.25,0.5,0.75)){
+        vsqlstr <- constructUDTSQL(pViewColnames = c(pgroupid=vColIdColumn,
+                                                    pvalue=vValueColumn,
+                                                    pperc=i),
+                                    pSelect=constructSelect(pObject),
+                                    pFuncName = "FLPercUdt",
+                                    pOutColnames = c("*"),
+                                    pNest=TRUE)
+        vRet <- sqlQuery(getFLConnection(),vsqlstr)
+        vRet <- vRet[order(vRet[[2]]),]
+        vRet <- vRet[[2]]
+        vnames <- names(vResultStats2)
+        vResultStats2 <- cbind(vResultStats2,
+                            data.frame(vRet))
+        colnames(vResultStats2) <- c(vnames,paste0(i,"Q"))
+    }
+    vResultStats1$indexcol <- NULL
+    vResultStats2$indexcol <- NULL
+    colnames(vResultStats1) <- c("Min.","Max.","Mean")
+    colnames(vResultStats2) <- c("1st Qu.","Median","3rd Qu.")
+    vResultStats <- rbind(t(vResultStats1),t(vResultStats2))
+    vResultStats <- vResultStats[c("Min.","1st Qu.","Median","Mean","3rd Qu.","Max."),]
+    colnames(vResultStats) <- paste0("V",1:ncol(pObject))
+    attr(vResultStats,"class") <- "table"
+    return(vResultStats)
+}
