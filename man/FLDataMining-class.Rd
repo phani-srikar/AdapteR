@@ -10,11 +10,11 @@ An S4 class to represent FLLinRegr
 \section{Slots}{
 
 \describe{
-\item{\code{offset}}{this can be used to specify a priori known component to be included in the 
+\item{\code{offset}}{this can be used to specify a priori known component to be included in the
 linear predictor during fitting. This should be NULL or a numeric vector of length equal to the number of cases
 An S4 class to represent objects returned by Data-Mining functions}
 
-\item{\code{deeptable}}{A character vector containing a deeptable (either conversion from a 
+\item{\code{deeptable}}{A character vector containing a deeptable (either conversion from a
 widetable or input deeptable)}
 
 \item{\code{AnalysisID}}{An output character ID from call to data-mining function}

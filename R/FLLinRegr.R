@@ -658,9 +658,9 @@ lmGeneric <- function(formula,data,
 
 	vinputCols <- list()
 
-    print(paste("Hello Group ID : ", getGroupIdSQLExpression(deepx), sep = ""))
+    # print(paste("Hello Group ID : ", getGroupIdSQLExpression(deepx), sep = ""))
 
-    print(paste("Class of deepx : ", class(deepx), sep = ""))
+    # print(paste("Class of deepx : ", class(deepx), sep = ""))
 
 	if(functionName %in% c("FLLinRegrSP",
 						   "FLLogRegrSP"))
@@ -2391,7 +2391,7 @@ coefficients.FLLinRegrMDS <- function(object){
 	    return(object@results[["coefficients"]])
 	else
 	{
-        browser()
+        # browser()
 		if(isDeep(object@table)){
 			coeffVector <- sqlQuery(getFLConnection(),
 								paste0("SELECT * FROM ",object@vfcalls["coefftablename"],
@@ -2497,9 +2497,10 @@ summary.FLLinRegrMD <- function(object){
 	return(vresList)
 }
 
+
 #' @export
 summary.FLLinRegrMDS <- function(object){
-  browser()
+  # browser()
 	vcoeffList <- object$coefficients
 	coeffframe <- object@results[["coeffframe"]]
 	if(is.null(object@results[["statsframe"]]))
@@ -2533,14 +2534,15 @@ summary.FLLinRegrMDS <- function(object){
 	return(vresList)
 }
 
-
 #' @export
-print.summary.FLLinRegrMD <- function(object){
-	ret <- object$statsframe
+get.summary.FLLinRegrMD <- function(object){
+	ret <- object@results[["statsframe"]] #object$statsframe
 	cat("Call:\n")
 	cat(paste0(object$call),"\n")
 	cat("\n\nCoefficients:\n")
-	print(object$coeffframe)
+    vcoeffList <- coefficients(object)
+    print(vcoeffList)
+	# print(object@results[["coeffframe"]])
 	cat("\n---\n")
 	cat("Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 '' 1\n")
 	cat("Residual standard error: ",ret[["MSRESIDUAL"]]," on ",ret[["DFRESIDUAL"]]," degrees of freedom\n\n")
@@ -2554,12 +2556,17 @@ print.summary.FLLinRegrMD <- function(object){
 }
 
 #' @export
-print.summary.FLLinRegrMDS <- function(object){
-	ret <- object@results[["statsframe"]]
+setMethod("show","FLLinRegrMD", get.summary.FLLinRegrMD)
+
+#' @export
+get.summary.FLLinRegrMDS <- function(object){
+	ret <- object@results[["statsframe"]] #object$statsframe 
 	cat("Call:\n")
 	cat(paste0(object$call),"\n")
 	cat("\n\nCoefficients:\n")
-	print(object$coeffframe)
+    vcoeffList <- coefficients(object)
+    print(vcoeffList)
+    #print(object@results[["coeffframe"]])
 	cat("\n---\n")
 	cat("Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 '' 1\n")
 	cat("Residual standard error: ",ret[["MSRESIDUAL"]]," on ",ret[["DFRESIDUAL"]]," degrees of freedom\n\n")
@@ -2571,15 +2578,15 @@ print.summary.FLLinRegrMDS <- function(object){
 	cat("DWStat: ",ret[["DWSTAT"]]," , ResidualAutoCorrel: ",ret[["RESIDUALAUTOCORREL"]],"\n")
 	cat("BPStat: ",ret[["BPSTAT"]]," , SigBPStat: ",ret[["SIGBPSTAT"]],"\n")
 }
+
+#' @export
+setMethod("show","FLLinRegrMDS", get.summary.FLLinRegrMDS)
 
 #' @export
 print.FLLinRegrMD <- summary.FLLinRegrMD
 
 #' @export
-print.FLLinRegrMDS <- print.summary.FLLinRegrMDS
-
-#' @export
-setMethod("show","FLLinRegrMDS",print.FLLinRegrMDS)
+print.FLLinRegrMDS <- summary.FLLinRegrMDS
 
 #' @export
 `[[.FLLinRegr`<-function(object,property){

@@ -14,7 +14,7 @@ step(object, scope, ...)
 or a formula. For a widetable, upper and lower should be formulas
 describing the range of models. If a formula is given instead of list
 it will be treated as upper. For a deeptable, upper and lower should
-be vectors with variable ids'.Provide empty list for deeptable if 
+be vectors with variable ids'.Provide empty list for deeptable if
 nothing is to be specified.}
 
 \item{scale}{currently not used.}
@@ -38,7 +38,7 @@ the stored procedure eliminates variables based on standard deviation and
 correlation.}
 
 \item{makeDataSparse}{If 0,Retains zeroes and NULL values
-from the input table. If 1, Removes zeroes and NULL. If 2,Removes zeroes 
+from the input table. If 1, Removes zeroes and NULL. If 2,Removes zeroes
 but retains NULL values.}
 
 \item{minStdDev}{Minimum acceptable standard deviation for
@@ -59,7 +59,7 @@ parameter PerformVarReduc = 1. Must be >0 and <=1.}
 \item{whereconditions}{takes the where_clause as a string.}
 
 \item{highestpAllow1}{All the variables whose p-value exceed the value
-specified by HighestpAllow1 are dropped in one go. 
+specified by HighestpAllow1 are dropped in one go.
 Typical value for HighestProbAllow1 could be 0.50. Must be >0 and < 1.
 Not applicable for forward.}
 
@@ -69,7 +69,7 @@ Typical value could be 0.10. Must be >0 and < 1.
 Not applicable for forward and backward.}
 
 \item{stepWiseDecrease}{The StepwiseDecrease is used to
-decrease the p-Value at each stage. In first step, 
+decrease the p-Value at each stage. In first step,
 all variables having pValue exceeding HighestpValue1 are
 dropped. Then the HighestpValue1 is
 reduced by StepwiseDecreasepValue
