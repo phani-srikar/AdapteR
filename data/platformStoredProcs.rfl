@@ -29,6 +29,8 @@ FLLinRegr.Hadoop(TableName,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegr(TableNa
 FLLinRegr.TD(TableName,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegr(TableName=TableName,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValueCol=ValueCol,Note=Note)
 FLLinRegr.TDAster(TableName,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegr(INPUT_TABLE=TableName,OBSID_COL=ObsIDCol,VARID_COL=VarIDCol,VALUE_COL=ValueCol,NOTE=Note)
 
+FLLinRegrSP.TD(TableName,GroupIDCol,ObsIDCol,VarIDCol,ValueCol,WhereClause,Note) <- FLLinRegrSP(TableName=TableName,GroupIDCol=GroupIDCol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValueCol=ValueCol,WhereClause=WhereClause,Note=Note)
+
 FLLinRegrMultiDataSet.TD(TableName,GroupIDCol,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegrMultiDataSet(TableName=TableName,GroupIDCol=GroupIDCol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValueCol=ValueCol,Note=Note)
 FLLinRegrMultiDataSet.Hadoop(TableName,GroupIDCol,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegrMultiDataSet(TableName=TableName,GroupIDCol=GroupIDCol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValueCol=ValueCol,Notes=Note)
 FLLinRegrMultiDataSet.TDAster(TableName,GroupIDCol,ObsIDCol,VarIDCol,ValueCol,Note) <- FLLinRegrMultiDataSet(INPUT_TABLE=TableName,GROUPID_COL=GroupIDCol,OBSID_COL=ObsIDCol,VARID_COL=VarIDCol,VALUE_COL=ValueCol,NOTE=Note)

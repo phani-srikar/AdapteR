@@ -131,6 +131,7 @@ Collate:
     'FLStringFunctions.R'
     'FLSubsetting.R'
     'FLTableMD.R'
+    'FLTableMDS.R'
     'FLTrace.R'
     'FLTranspose.R'
     'FLTriDiag.R'

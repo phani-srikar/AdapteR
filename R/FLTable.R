@@ -833,6 +833,8 @@ FLTrainDataPrep.FLTableMD.TD <- function(object,
                                 MDFlag=TRUE))
 }
 
+FLTrainDataPrep.FLTableMDS.TD <- FLTrainDataPrep.FLTableMD.TD
+
 FLTrainDataPrep.FLTableMD.Hadoop <- function(object,
                                            DepCol,
                                            inputParams,

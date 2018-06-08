@@ -495,11 +495,12 @@ setClass("FLTableMDDeep.Hadoop", contains = "FLTableMDDeep")
 setClass("FLTableMDDeep.TD", contains = "FLTableMDDeep")
 setClass("FLTableMDDeep.TDAster", contains = "FLTableMDDeep")
 
-newFLTableMD <- function(isDeep,...) {
+newFLTableMD <- function(isDeep,MDS=FALSE,...) {
+    vMDSFlag = MDS;
     if(isDeep)
-        return(new(paste0("FLTableMDDeep.",getFLPlatform()), ...))
+        return(new(paste0("FLTable", ifelse(vMDSFlag,"MDS","MD"),"Deep.",getFLPlatform()), ...))
     else
-        return(new(paste0("FLTableMD.",getFLPlatform()), ...))
+        return(new(paste0("FLTable", ifelse(vMDSFlag,"MDS","MD"),".",getFLPlatform()), ...))
 }
 
 #' computes the length of FLVector object.
@@ -1081,6 +1082,7 @@ setMethod("getTableNameSlot",
 isDeep <- function(x){
     return(inherits(x,"FLTableDeep") 
         | inherits(x,"FLTableMDDeep") 
+        | inherits(x,"FLTableMDSDeep")
         | inherits(x,"FLMatrix")
         | (inherits(x,"FLVector") && x@isDeep))
 }
