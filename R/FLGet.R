@@ -446,6 +446,7 @@ calcResiduals <- function(object,
                           type = c("deviance", "pearson", "working", 
                                   "response", "partial"),
                           ...){
+                            browser()
   vtype <- match.arg(type)
   vfit <- object$fitted.values
   vYVector <- object$y
@@ -453,6 +454,15 @@ calcResiduals <- function(object,
     stop("partial type is not supported currently \n ")
   if(object@vfcalls["functionName"]=="FLLinRegr"
     || vtype=="response"|| object@vfcalls["functionName"] =="FLRobustRegr"||object@vfcalls["functionName"] =="FLPLSRegr"){
+    sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn, \n ",
+                                "a.vectorIndexColumn AS vectorIndexColumn, \n ",
+                                "(a.vectorValueColumn-b.vectorValueColumn)",
+                                " AS vectorValueColumn \n ",
+                      " FROM(",constructSelect(vYVector),") a, \n ",
+                            "(",constructSelect(vfit),") b \n ",
+                      " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
+  }
+  else if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet") {
     sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn, \n ",
                                 "a.vectorIndexColumn AS vectorIndexColumn, \n ",
                                 "(a.vectorValueColumn-b.vectorValueColumn)",
