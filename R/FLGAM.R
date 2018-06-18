@@ -35,7 +35,7 @@ setClass(
 #' represent splineDegree and number of knots respectively.In
 #' addition, NumOfPredPts is specified through \code{xt} and byVarName
 #' through \code{by}.One Can club Spline terms with same set of
-#' specifications by passing more than one variables/colnames in \code{s}. 
+#' specifications by passing more than one variables/colnames in \code{s}.
 #' @param family currently only stats::poisson is supported
 #' @param offset column name indicating the offset if any
 #' @param maxiter maximum num of iterations
@@ -116,7 +116,7 @@ setMethod("gam",
         maxiter=maxiter,
         ...))
     })
-	
+
 
 gam.FLTable <- function(formula,family=stats::poisson,
 						data,offset=NULL,
@@ -210,7 +210,7 @@ gam.FLTable <- function(formula,family=stats::poisson,
 				vByVarName <- checkByVarName(vtempattr$by[1],colnames(data))
 				if(vByVarName!="NULL")
 				cat("currently byVarName not supported for tensor.Setting NULL")
-				
+
 				d <- data.frame(fquote(vspecid),vtermid,
 								fquote(vtempattr$term[1]),fquote("bs"),
 								vsplineDegree,vNumOfKnots,
@@ -232,7 +232,7 @@ gam.FLTable <- function(formula,family=stats::poisson,
 				vNumOfKnots <- checkNumOfKnots(vtempattr$bs.dim[1],vsplineDegree)
 				vByVarName <- checkByVarName(vtempattr$by[1],colnames(data))
 				if(vByVarName!="NULL") vByVarName <- fquote(vByVarName)
-				
+
 				d <- data.frame(fquote(vspecid),vtermid,
 								fquote(vtempattr$term[j]),fquote("bs"),
 								vsplineDegree,vNumOfKnots,
@@ -247,7 +247,7 @@ gam.FLTable <- function(formula,family=stats::poisson,
 		##no-fit
 		else if(as.character(attr(terms(formula),"variables")[i+1]) %in% vcolnames)
 		{
-			
+
 			d <- data.frame(fquote(vspecid),vtermid,
 						fquote(as.character(attr(terms(formula),"variables")[i+1])),fquote("na"),
 						"NULL","NULL",
@@ -277,7 +277,7 @@ gam.FLTable <- function(formula,family=stats::poisson,
 	# sqlSendUpdate(getFLConnection(),vsqlstr)
     insertIntotbl(pTableName="fzzlGAMParams",
                 pValues=vgamParams)
-	
+
 	vresult <- sqlStoredProc(getFLConnection(),
 							"FLGAM",
 							outputParameter=c(AnalysisID="a"),
@@ -549,10 +549,11 @@ fitted.values.FLGAM <- function(object)
         if(object@scoreTable=="")
             # object@scoreTable <- paste0(getOption("ResultDatabaseFL"),".",gen_score_table_name(getTableNameSlot(object@table)))
             object@scoreTable <- gen_score_table_name(getTableNameSlot(object@table))
-        if(length(object@deeptable@select@variables)>0)
-            vtbl <- object@deeptable
+        if(length(object@deeptable@select@variables)>0) {
+          vtbl <- object@deeptable
+        }
         else vtbl <- object@table
-        
+
         fitted.valuesVector <- predict(object,vtbl,scoreTable=object@scoreTable)
         object@results <- c(object@results,list(fitted.values=fitted.valuesVector))
         parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
@@ -572,7 +573,7 @@ residuals.FLGAM <- function(object)
 	return(object@results[["residuals"]])
 	else
 	{
-		
+
 		if(object@scoreTable==""){
 		# object@scoreTable <- paste0(getOption("ResultDatabaseFL"),".",
 		# 	gen_score_table_name(getTableNameSlot(object@table)))
@@ -585,7 +586,7 @@ residuals.FLGAM <- function(object)
 
 		y <- "fPred"
 		vobsid <- "ObsID"
-		
+
   #   	if(!isDeep(object@table))
 		# vYVector <- object@table[,all.vars(object@formula)[1]]
 		# else
@@ -713,7 +714,7 @@ model.FLGAM <- function(object)
 			# 	vtablename <- paste0(object@table@select@database,".",getTableNameSlot(object@table))
 			# 	if(checkYorN(vinput)) vinput <- paste0(" TOP 10 ")
 			# }
-			
+
 			obs_id_colname <- getVariables(object@table)[["obs_id_colname"]]
 
 			vsqlstr <- paste0("SELECT ",paste0(vcolnames,collapse=","),
@@ -781,7 +782,7 @@ offset.FLGAM <- function(object)
 													"vectorValueColumn"),
 									isDeep = FALSE)
 		}
-		
+
 		object@results <- c(object@results,list(offset=offsetvector))
 		parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
 		assign(parentObject,object,envir=parent.frame())
@@ -866,7 +867,7 @@ y.FLGAM <- function(object)
 											"vectorValueColumn"),
 							isDeep = FALSE)
 		}
-		
+
 		object@results <- c(object@results,list(y=yvector))
 		parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
 		assign(parentObject,object,envir=parent.frame())
@@ -929,9 +930,9 @@ predict.FLGAM <- function(object,
 
 	if(scoreTable=="")
 	scoreTable <- paste0(getOption("ResultDatabaseFL"),".",gen_score_table_name(getTableNameSlot(object@table)))
-	else if(!grep(".",scoreTable)) 
+	else if(!grep(".",scoreTable))
 	scoreTable <- paste0(getOption("ResultDatabaseFL"),".",scoreTable)
-	
+
 	vinputCols <- c(vinputCols,
 					scoreTable=scoreTable,
 					Note=genNote("Scoring gam"))
@@ -1042,7 +1043,7 @@ checkNumOfKnots <- function(vNumOfKnots,vsplineDegree)
 		cat("No.Of.Knots given by k should be numeric.Setting to splinedegree(m) + 1")
 		vNumOfKnots <- vsplineDegree + 1
 	}
-	else if(vNumOfKnots==-1) 
+	else if(vNumOfKnots==-1)
 	vNumOfKnots <- vsplineDegree + 1
 	else if(vNumOfKnots <= 0 || vNumOfKnots <= vsplineDegree)
 	{

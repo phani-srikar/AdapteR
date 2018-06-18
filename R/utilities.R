@@ -25,7 +25,7 @@ sqlError <- function(e){
 ######  provide methods for JDBC with same signature as ODBC methods
 ################################################################################
 #' Send a query to database
-#' 
+#'
 #' No result is returned
 #' @param channel JDBC connection object
 #' @param query SQLQuery to be sent
@@ -33,7 +33,7 @@ sqlError <- function(e){
 sqlSendUpdate <- function(connection,query,...) UseMethod("sqlSendUpdate")
 
 #' @export
-sqlSendUpdate.FLConnection <- function(connection,query,...) 
+sqlSendUpdate.FLConnection <- function(connection,query,...)
     sqlSendUpdate(connection$connection,query,...)
 
 #' Send a query to database
@@ -48,7 +48,7 @@ sqlQuery.FLConnection <- function(connection,query,...)
     sqlQuery(connection$connection,query,...)
 
 #' Send a query to database
-#' 
+#'
 #' No result is returned
 #' @param channel JDBC connection object
 #' @param query SQLQuery to be sent
@@ -76,7 +76,7 @@ sqlSendUpdate.JDBCConnection <- function(connection,query,warn=TRUE,...) {
 }
 
 #' Send a query to database
-#' 
+#'
 #' No result is returned
 #' @param channel ODBC connection object
 #' @param query SQLQuery to be sent
@@ -147,10 +147,10 @@ constructStoredProcArgs <- function(query,
 #' @param channel ODBC/JDBC connection object
 #' @param query SQLQuery to be sent
 #' @export
-sqlStoredProc <- function(connection, 
-                        query, 
-                        outputParameter, 
-                        ...) 
+sqlStoredProc <- function(connection,
+                        query,
+                        outputParameter,
+                        ...)
                     UseMethod("sqlStoredProc")
 
 #' @export
@@ -158,7 +158,7 @@ sqlStoredProc.FLConnection <- function(connection,
                                         query,
                                         outputParameter=NULL,
                                         ...) {
-    if((is.TDAster(connection=connection)||is.Hadoop(connection=connection)) && 
+    if((is.TDAster(connection=connection)||is.Hadoop(connection=connection)) &&
         class(getRConnection(connection))=="JDBCConnection")
         class(connection$connection) <- "JDBCTDAster"
     sqlStoredProc(connection=getRConnection(connection),
@@ -182,7 +182,7 @@ sqlStoredProc.JDBCTDAster <- function(connection,
                                   pFuncName=query,
                                   pOutputParameter=outputParameter),
                              args))
-    if(getOption("debugSQL")) {    
+    if(getOption("debugSQL")) {
         cat(paste0("CALLING Stored Proc: \n",
                    gsub(" +","    ", sqlstr),"\n"))
     }
@@ -195,7 +195,7 @@ sqlStoredProc.JDBCTDAster <- function(connection,
 }
 
 #' @export
-sqlStoredProc.RODBC <- function(connection, query, 
+sqlStoredProc.RODBC <- function(connection, query,
                                 outputParameter,
                                 ...) {
     vlist <- constructStoredProcArgs(query=query,
@@ -221,7 +221,7 @@ sqlStoredProc.ODBCConnection <- function(connection,
 }
 
 #' @export
-sqlStoredProc.JDBCConnection <- function(connection, query, 
+sqlStoredProc.JDBCConnection <- function(connection, query,
                                          outputParameter=NULL,
                                          ...) { #browser()
     ## http://developer.teradata.com/doc/connectivity/jdbc/reference/current/jdbcug_chapter_2.html
@@ -233,13 +233,13 @@ sqlStoredProc.JDBCConnection <- function(connection, query,
                                     ...)
     args <- vlist$args
     query <- vlist$query
-    
+
     if(getOption("debugSQL")) {
         sqlstr <- do.call("constructStoredProcSQL",
                           append(list(pConnection="string",
                                       pFuncName=query,
                                       pOutputParameter=outputParameter),
-                                 args))        
+                                 args))
         cat(paste0("CALLING Stored Proc: \n",
                    gsub(" +","    ", sqlstr),"\n"))
     }
@@ -247,7 +247,7 @@ sqlStoredProc.JDBCConnection <- function(connection, query,
                       append(list(pConnection=connection,
                                   pFuncName=query,
                                   pOutputParameter=outputParameter),
-                             args))        
+                             args))
     cStmt = .jcall(connection@jc,"Ljava/sql/PreparedStatement;","prepareStatement",query)
     ##CallableStatement cStmt = con.prepareCall(sCall);
     ## Setting up input parameter value
@@ -276,7 +276,7 @@ sqlStoredProc.JDBCConnection <- function(connection, query,
             a <- .jfield("java/sql/Types",,"BIGINT")
         else if(is.numeric(a))
             a <- .jfield("java/sql/Types",,"FLOAT")
-        .jcall(cStmt,"V","registerOutParameter",ai,a) ## Error Hadoop:- method registerOutParameter with signature (II)V not found 
+        .jcall(cStmt,"V","registerOutParameter",ai,a) ## Error Hadoop:- method registerOutParameter with signature (II)V not found
         ai <- ai+1L
     }
 
@@ -361,8 +361,8 @@ sqlQuery.NULL <- function(connection, query, ...){
 }
 
 ##' drop a table
-##' 
-##' @param object FLTable object 
+##'
+##' @param object FLTable object
 ##' @return message if the table is dropped
 ##' @export
 dbDrop <- function(object)
@@ -569,7 +569,7 @@ getMaxVectorId <- function(vconnection = getFLConnection(),
 #' @param pInput list of input objects
 #' @param pOperator function which generated the pResult
 #' @param pStoreResult Flag whether to store the pResult
-#' @return pResult after storing transparently inputs 
+#' @return pResult after storing transparently inputs
 #' and recomputing the operation
 #' @examples
 #' cat("Below Example shows how expressions with number of nested queries exceeding the limit are handled:")

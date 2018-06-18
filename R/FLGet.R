@@ -18,7 +18,7 @@ getFLColumnType <- function(x,columnName=NULL){
                   FLOAT="numeric",
                   VARCHAR="logical")
     vresult <- names(vmapping)[vmapping==typeof(x)]
-    if(vresult=="VARCHAR") 
+    if(vresult=="VARCHAR")
     vresult <- "VARCHAR(255)"
     return(vresult)
 }
@@ -190,7 +190,7 @@ setMethod("getValueColumn",signature(object="FLVector"),
         return(c(cell_val_colname=getVariables(object)[["cell_val_colname"]]))
         else{
           vtemp <- ""
-          if(!is.null(getAlias(object)) && 
+          if(!is.null(getAlias(object)) &&
             getAlias(object)!="")
           vtemp <- paste0(getAlias(object),".")
           return(sapply(colnames(object),
@@ -207,7 +207,7 @@ setMethod("getValueColumn",signature(object="FLTable"),
         if(isDeep(object))
         return(c(cell_val_colname=getVariables(object)[["cell_val_colname"]]))
         vtemp <- ""
-        if(!is.null(getAlias(object)) && 
+        if(!is.null(getAlias(object)) &&
             getAlias(object)!="")
         vtemp <- paste0(getAlias(object),".")
         return(sapply(colnames(object),
@@ -333,7 +333,7 @@ getXMatrix <- function(object,
                             "(SELECT ",vID,",ROW_NUMBER()over(order by ",vID,") AS CoeffIDNew \n ",
                             " FROM ",object@vfcalls["coefftablename"]," a \n ",
                             " WHERE a.AnalysisID = ",fquote(object@AnalysisID),
-                                    ifelse(length(object@results[["modelID"]])>0 
+                                    ifelse(length(object@results[["modelID"]])>0
                                             && object@vfcalls["functionName"]!= "FLRobustRegr",
                                         paste0("\n AND a.ModelID = ",
                                                 object@results[["modelID"]]),""),
@@ -349,7 +349,7 @@ getXMatrix <- function(object,
                       " FROM (",constructSelect(modelframe),") a, \n ",
                             object@vfcalls["coefftablename"]," b \n ",
                       " WHERE b.AnalysisID = ",fquote(object@AnalysisID),
-                            ifelse(length(object@results[["modelID"]])>0 
+                            ifelse(length(object@results[["modelID"]])>0
                                     && object@vfcalls["functionName"]!= "FLRobustRegr",
                                 paste0("\n AND b.ModelID = ",object@results[["modelID"]]),""),
                             " AND b.",vID,"=a.",vvaridSQLName," "
@@ -378,7 +378,7 @@ getXMatrix <- function(object,
                 SQLquery=vsqlstr)
 
   vallVars <- all.vars(object@formula)
-  
+
   ## For LogRegrMN CoeffVector is Matrix
   if(!is.null(object@results[["XMatrixColnames"]]))
     vcolnames <- object@results[["XMatrixColnames"]]
@@ -443,10 +443,9 @@ calcLinearPred <- function(object,...){
 }
 
 calcResiduals <- function(object,
-                          type = c("deviance", "pearson", "working", 
+                          type = c("deviance", "pearson", "working",
                                   "response", "partial"),
                           ...){
-                            browser()
   vtype <- match.arg(type)
   vfit <- object$fitted.values
   vYVector <- object$y
@@ -539,7 +538,7 @@ calcResiduals <- function(object,
                         whereconditions="",
                         order = "",
                         SQLquery=sqlstr)
-  
+
   flv <- newFLVector(
               select = tblfunqueryobj,
               Dimnames = dimnames(vfit),
@@ -567,7 +566,7 @@ getArithmeticType <- function(pObj1,pObj2,pOperator){
     return("character")
   else if("double" %in% vtype)
     return("double")
-  else if("integer" %in% vtype 
+  else if("integer" %in% vtype
         && pOperator %in% c("+","-","*","%*%"))
     return("integer")
   else if(all(vtype=="logical"))

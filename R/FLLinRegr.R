@@ -2551,6 +2551,16 @@ predict.FLLinRegr <- function(object,
                              ...))
 }
 
+predict.FLLinRegrMD <- function(object,
+                              newdata=object@table,
+                              scoreTable="",
+                              ...){
+
+    return(predict.lmGeneric(object,newdata=newdata,
+                             scoreTable=scoreTable,
+                             ...))
+}
+
 predict.FLRobustRegr <- function(object,
                                  newdata=object@table,
                                  scoreTable="",
@@ -2621,9 +2631,19 @@ predict.lmGeneric <- function(object,
                     VarIDCol=vvarid,
                     ValCol=vvalue
                     )
-    if(!object@vfcalls["functionName"]=="FLPoissonRegr")
+
+    browser()
+
+    if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet" || object@vfcalls["functionName"] == "FLLinRegrSP") {
+        GroupIDCol = getGroupIdSQLExpression(newdata)
         vinputCols <- c(vinputCols,
-                        WhereClause="NULL")
+                        WhereClause = paste(GroupIDCol, "=1", sep = ""))
+    }
+
+    else if(!object@vfcalls["functionName"]=="FLPoissonRegr")
+            vinputCols <- c(vinputCols,
+                            WhereClause="NULL")
+
     vinputCols <- c(vinputCols,
                     RegrAnalysisID=object@AnalysisID,
                     ScoreTable=scoreTable)
