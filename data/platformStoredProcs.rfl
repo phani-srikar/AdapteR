@@ -39,6 +39,10 @@ FLLinRegrScore.TD(TableName,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,
 FLLinRegrScore.TDAster(TableName,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,ScoreTable,Note) <- FLLinRegrScore(ANALYSISID=RegrAnalysisID,INPUT_TABLE=TableName,OBSID_COL=ObsIDCol,VARID_COL=VarIDCol,VALUE_COL=ValCol,OUTPUT_TABLE=ScoreTable,WHERE_CLAUSE=WhereClause,NOTE=Note)
 FLLinRegrScore.Hadoop(TableName,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,ScoreTable,Note) <- FLLinRegrScore(TableName=TableName,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValCol=ValCol,WhereClause=WhereClause,RegrAnalysisID=RegrAnalysisID,ScoreTable=ScoreTable)
 
+FLLinRegrMDSScore.TD(TableName,DatasetIDcol,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,ScoreTable,Note) <- FLLinRegrMDSScore(TableName=TableName,DatasetIDcol=DatasetIDcol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValCol=ValCol,WhereClause=WhereClause,RegrAnalysisID=RegrAnalysisID,ScoreTable=ScoreTable,Note=Note)
+FLLinRegrMDSScore.TDAster(TableName,DatasetIDcol,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,ScoreTable,Note) <- FLLinRegrMDSScore(TableName=TableName,DatasetIDcol=DatasetIDcol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValCol=ValCol,WhereClause=WhereClause,RegrAnalysisID=RegrAnalysisID,ScoreTable=ScoreTable,Note=Note)
+FLLinRegrMDSScore.Hadoop(TableName,DatasetIDcol,ObsIDCol,VarIDCol,ValCol,WhereClause,RegrAnalysisID,ScoreTable,Note) <- FLLinRegrMDSScore(TableName=TableName,DatasetIDcol=DatasetIDcol,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValCol=ValCol,WhereClause=WhereClause,RegrAnalysisID=RegrAnalysisID,ScoreTable=ScoreTable,Note=Note)
+
 FLLinRegrBW.TD(TableName,ObsIDCol,VarIDCol,ValueCol,SPECID,HIGHESTPALLOW1,Note) <- FLLinRegrBW(TableName=TableName,ObsIDCol=ObsIDCol,VarIDCol=VarIDCol,ValueCol=ValueCol,SPECID=SPECID,HIGHESTPALLOW1=HIGHESTPALLOW1,Note=Note)
 FLLinRegrBW.TDAster(TableName,ObsIDCol,VarIDCol,ValueCol,SPECID,HIGHESTPALLOW1,Note) <- FLLinRegrBW(INPUT_TABLE=TableName,OBSID_COL=ObsIDCol,VARID_COL=VarIDCol,VALUE_COL=ValueCol,SPECID_COL=SPECID,HIGHEST_PVALUE_ALLOWED=HIGHESTPALLOW1,NOTE=Note)
 

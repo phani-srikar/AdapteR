@@ -18,7 +18,7 @@ needs to be within limits}
 \item{pStoreResult}{Flag whether to store the pResult}
 }
 \value{
-pResult after storing transparently inputs 
+pResult after storing transparently inputs
 and recomputing the operation
 }
 \description{

@@ -565,22 +565,22 @@ lmGeneric <- function(formula,data,
                                                 "FLLinRegrSP",
                                                 "FLLinRegrMultiDataSet"),
 										    "FLLinRegr"),
-										infotableName = ifelse(is.FLTableMDS(data),
-										                       "fzzlInfo",
-										                       "fzzlLinRegrInfo"),
-										Note= ifelse(is.FLTableMDS(data),
-										             "linregrSP",
-										             "linregr"),
-										coefftablename= ifelse(is.FLTableMDS(data),
-										                       "fzzlLinRegrCoeffsMDS",
-										                       "fzzlLinRegrCoeffs") ,
-										statstablename= ifelse(is.FLTableMDS(data),
-										                       "fzzlLinRegrStatsMDS",
-										                       "fzzlLinRegrStats"),
-										valcolnamescoretable="Y",
-										scoretablename= ifelse(is.FLTableMDS(data),
-										                       "FLLinRegrScoreSP",
-										                       "FLLinRegrScore"))}
+								 infotableName = ifelse(is.FLTableMDS(data),
+								                             "fzzlInfo",
+								                             "fzzlLinRegrInfo"),
+								 Note= ifelse(is.FLTableMDS(data),
+								                 "linregrSP",
+								                 "linregr"),
+								 coefftablename= ifelse(is.FLTableMDS(data),
+								                             "fzzlLinRegrCoeffsMDS",
+								                             "fzzlLinRegrCoeffs") ,
+								 statstablename= ifelse(is.FLTableMDS(data),
+								                             "fzzlLinRegrStatsMDS",
+								                             "fzzlLinRegrStats"),
+								 valcolnamescoretable="Y",
+								 scoretablename= ifelse(is.FLTableMD(data),
+										                    "FLLinRegrMDSScore",
+										                    "FLLinRegrScore"))}
 
 	else if(familytype=="logistic"){
 		if(direction=="sf")  vfcalls<-c(functionName="FLLogRegrSF",
@@ -1733,9 +1733,12 @@ prepareData.character <- prepareData.formula
 `$.FLLinRegrMD`<-function(object,property){
                                         #parentObject <- deparse(substitute(object))
     parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
-                            "(",fixed=T))[2],",",fixed=T))[1]
+                                                    "(",fixed=T))[2],",",fixed=T))[1]
     if(property=="coefficients"){
-        `$.FLLinRegr`(object, property="coefficients")
+      # browser()
+        coefficientsvector <- coefficients(object)
+        assign(parentObject,object,envir=parent.frame())
+        return(coefficientsvector)
     }
     else if (property=="residuals"){
         residualsvector <- residuals(object)
@@ -1963,6 +1966,42 @@ prepareData.character <- prepareData.formula
             assign(parentObject,object,envir=parent.frame())
             return(vterms)
         }
+    }
+
+    else if(property=="regrstats")
+    {
+      # browser()
+      vcoeffList <- object$coefficients
+      coeffframe <- object@results[["coeffframe"]]
+      if(is.null(object@results[["statsframe"]]))
+        statsframe <- sqlQuery(getFLConnection(),
+                               paste0("SELECT * FROM ",object@vfcalls["statstablename"],
+                                      " WHERE AnalysisID=",fquote(object@AnalysisID),
+                                      " ORDER BY MODELID "))
+      else statsframe <- object@results[["statsframe"]]
+      colnames(statsframe) <- toupper(colnames(statsframe))
+      vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
+                         function(x){
+                           vtemp <- coeffframe[coeffframe[,"MODELID"]==x,]
+                           vrownames <- vtemp[["COEFFNAMES"]]
+                           vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
+                           vcoeffmat <- as.matrix(vtemp)
+                           rownames(vcoeffmat) <- vrownames
+                           colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
+                                                    "p-value","non-zero Density","Correl With Residual")
+                           vtemp <- statsframe[statsframe[,"MODELID"]==x,]
+                           vsummaryList <- list(coeffframe=vcoeffmat,
+                                                statsframe=vtemp,
+                                                call=object$call)
+                           class(vsummaryList) <- "summary.FLLinRegrMD"
+                           return(vsummaryList)
+                         })
+      names(vresList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
+      parentObject <- unlist(strsplit(unlist(strsplit(as.character
+                                                      (sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+      object@results[["statsframe"]] <- statsframe
+      assign(parentObject,object,envir=parent.frame())
+      return(vresList)
     }
 
     else if(property=="anova") stop("This feature is not available yet.")
@@ -2208,6 +2247,41 @@ prepareData.character <- prepareData.formula
         }
     }
 
+    else if(property=="regrstats")
+    {
+      vcoeffList <- object$coefficients
+      coeffframe <- object@results[["coeffframe"]]
+      if(is.null(object@results[["statsframe"]]))
+        statsframe <- sqlQuery(getFLConnection(),
+                               paste0("SELECT * FROM ",object@vfcalls["statstablename"],
+                                      " WHERE AnalysisID=",fquote(object@AnalysisID),
+                                      " ORDER BY DATASETID "))
+      else statsframe <- object@results[["statsframe"]]
+      colnames(statsframe) <- toupper(colnames(statsframe))
+      vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
+                         function(x){
+                           vtemp <- coeffframe[coeffframe[,"DATASETID"]==x,]
+                           vrownames <- vtemp[["COEFFNAMES"]]
+                           vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
+                           vcoeffmat <- as.matrix(vtemp)
+                           rownames(vcoeffmat) <- vrownames
+                           colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
+                                                    "p-value","non-zero Density","Correl With Residual")
+                           vtemp <- statsframe[statsframe[,"DATASETID"]==x,]
+                           vsummaryList <- list(coeffframe=vcoeffmat,
+                                                statsframe=vtemp,
+                                                call=object$call)
+                           class(vsummaryList) <- "summary.FLLinRegrMDS"
+                           return(vsummaryList)
+                         })
+      names(vresList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
+      parentObject <- unlist(strsplit(unlist(strsplit(as.character
+                                                      (sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+      object@results[["statsframe"]] <- statsframe
+      assign(parentObject,object,envir=parent.frame())
+      return(vresList)
+    }
+
     else if(property=="anova") stop("This feature is not available yet.")
 
     else stop("That's not a valid property \n ")
@@ -2409,6 +2483,22 @@ residuals.FLLinRegrMD<-function(object)
     }
 }
 
+#' @export
+residuals.FLLinRegrMDS<-function(object)
+{
+  if(!is.null(object@results[["residuals"]]))
+    return(object@results[["residuals"]])
+  else
+  {
+    residualsvector <- calcResiduals(object=object)
+    object@results <- c(object@results,list(residuals=residualsvector))
+    parentObject <- unlist(strsplit(unlist(strsplit(
+      as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+    assign(parentObject,object,envir=parent.frame())
+    return(residualsvector)
+  }
+}
+
 ## move to file lm.R
 #' @export
 model.FLLinRegr <- function(object,...)
@@ -2551,6 +2641,7 @@ predict.FLLinRegr <- function(object,
                              ...))
 }
 
+#' @export
 predict.FLLinRegrMD <- function(object,
                               newdata=object@table,
                               scoreTable="",
@@ -2559,6 +2650,17 @@ predict.FLLinRegrMD <- function(object,
     return(predict.lmGeneric(object,newdata=newdata,
                              scoreTable=scoreTable,
                              ...))
+}
+
+#' @export
+predict.FLLinRegrMD <- function(object,
+                                newdata=object@table,
+                                scoreTable="",
+                                ...){
+
+  return(predict.lmGeneric(object,newdata=newdata,
+                           scoreTable=scoreTable,
+                           ...))
 }
 
 predict.FLRobustRegr <- function(object,
@@ -2623,21 +2725,20 @@ predict.lmGeneric <- function(object,
     vobsid <- getObsIdSQLExpression(newdata)
     vvarid <- getVarIdSQLExpression(newdata)
     vvalue <- getValueSQLExpression(newdata)
+    vdatasetid <- getGroupIdSQLExpression(newdata)
 
     vinputCols <- list()
     vinputCols <- c(vinputCols,
                     TableName=vtable,
+                    DatasetIDcol=vdatasetid,
                     ObsIDCol=vobsid,
                     VarIDCol=vvarid,
                     ValCol=vvalue
                     )
-
-    browser()
-
     if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet" || object@vfcalls["functionName"] == "FLLinRegrSP") {
-        GroupIDCol = getGroupIdSQLExpression(newdata)
         vinputCols <- c(vinputCols,
-                        WhereClause = paste(GroupIDCol, "=1", sep = ""))
+                        WhereClause = "NULL")
+        vfcalls["scoretablename"] <- "FLLinRegrMDSScore"
     }
 
     else if(!object@vfcalls["functionName"]=="FLPoissonRegr")
@@ -2827,6 +2928,7 @@ lm.influence.FLLinRegr <- function(model,do.coef=TRUE,...){
 
 ##Return list of coefficients vectors
 coefficients.FLLinRegrMD <- function(object){
+  # browser()
 	if(!is.null(object@results[["coefficients"]]))
 	return(object@results[["coefficients"]])
 	else
@@ -2892,8 +2994,9 @@ coefficients.FLLinRegrMD <- function(object){
 								return(vcoeff)
 								})
 		names(vcoeffList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
-		parentObject <- unlist(strsplit(unlist(strsplit(as.character
-							(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+
+		parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
+		                                                "(",fixed=T))[2],",",fixed=T))[1]
 		object@results[["coefficients"]] <- vcoeffList
 		object@results[["coeffframe"]] <- coeffVector
 		assign(parentObject,object,envir=parent.frame())
@@ -2980,78 +3083,18 @@ coefficients.FLLinRegrMDS <- function(object){
 
 #' @export
 summary.FLLinRegrMD <- function(object){
-	vcoeffList <- object$coefficients
-	coeffframe <- object@results[["coeffframe"]]
-	if(is.null(object@results[["statsframe"]]))
-		statsframe <- sqlQuery(getFLConnection(),
-						paste0("SELECT * FROM ",object@vfcalls["statstablename"],
-								" WHERE AnalysisID=",fquote(object@AnalysisID),
-								" ORDER BY MODELID "))
-	else statsframe <- object@results[["statsframe"]]
-	colnames(statsframe) <- toupper(colnames(statsframe))
-	vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
-					function(x){
-						vtemp <- coeffframe[coeffframe[,"MODELID"]==x,]
-						vrownames <- vtemp[["COEFFNAMES"]]
-						vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
-						vcoeffmat <- as.matrix(vtemp)
-						rownames(vcoeffmat) <- vrownames
-						colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
-												"p-value","non-zero Density","Correl With Residual")
-						vtemp <- statsframe[statsframe[,"MODELID"]==x,]
-						vsummaryList <- list(coeffframe=vcoeffmat,
-											statsframe=vtemp,
-											call=object$call)
-						class(vsummaryList) <- "summary.FLLinRegrMD"
-						return(vsummaryList)
-						})
-	names(vresList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
-	parentObject <- unlist(strsplit(unlist(strsplit(as.character
-							(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-	object@results[["statsframe"]] <- statsframe
-	assign(parentObject,object,envir=parent.frame())
-	return(vresList)
+	`$.FLLinRegrMD`(object, property = "regrstats")
 }
 
 
 #' @export
 summary.FLLinRegrMDS <- function(object){
-  # browser()
-	vcoeffList <- object$coefficients
-	coeffframe <- object@results[["coeffframe"]]
-	if(is.null(object@results[["statsframe"]]))
-		statsframe <- sqlQuery(getFLConnection(),
-						paste0("SELECT * FROM ",object@vfcalls["statstablename"],
-								" WHERE AnalysisID=",fquote(object@AnalysisID),
-								" ORDER BY DATASETID "))
-	else statsframe <- object@results[["statsframe"]]
-	colnames(statsframe) <- toupper(colnames(statsframe))
-	vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
-					function(x){
-						vtemp <- coeffframe[coeffframe[,"DATASETID"]==x,]
-						vrownames <- vtemp[["COEFFNAMES"]]
-						vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
-						vcoeffmat <- as.matrix(vtemp)
-						rownames(vcoeffmat) <- vrownames
-						colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
-												"p-value","non-zero Density","Correl With Residual")
-						vtemp <- statsframe[statsframe[,"DATASETID"]==x,]
-						vsummaryList <- list(coeffframe=vcoeffmat,
-											statsframe=vtemp,
-											call=object$call)
-						class(vsummaryList) <- "summary.FLLinRegrMDS"
-						return(vsummaryList)
-						})
-	names(vresList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
-	parentObject <- unlist(strsplit(unlist(strsplit(as.character
-							(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-	object@results[["statsframe"]] <- statsframe
-	assign(parentObject,object,envir=parent.frame())
-	return(vresList)
+  `$.FLLinRegrMDS`(object, property = "regrstats")
 }
 
 #' @export
 get.summary.FLLinRegrMD <- function(object){
+  `$.FLLinRegrMD`(object, property = "regrstats")
 	ret <- object@results[["statsframe"]] #object$statsframe
 	cat("Call:\n")
 	cat(paste0(object$call),"\n")
@@ -3076,6 +3119,7 @@ setMethod("show","FLLinRegrMD", get.summary.FLLinRegrMD)
 
 #' @export
 get.summary.FLLinRegrMDS <- function(object){
+  `$.FLLinRegrMDS`(object, property = "regrstats")
 	ret <- object@results[["statsframe"]] #object$statsframe
 	cat("Call:\n")
 	cat(paste0(object$call),"\n")
