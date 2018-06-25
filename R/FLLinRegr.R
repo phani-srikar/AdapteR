@@ -558,9 +558,8 @@ lmGeneric <- function(formula,data,
                                     note="SingleFactorLinRegr",
                                     coefftablename="fzzlLinRegrCoeffs",
                                     statstablename="fzzlLinRegrStats")
-	 	else
-
-	 	vfcalls <- c(functionName=ifelse(is.FLTableMD(data),
+	 	else {
+             vfcalls <- c(functionName=ifelse(is.FLTableMD(data),
 											ifelse(is.FLTableMDS(data),
                                                 "FLLinRegrSP",
                                                 "FLLinRegrMultiDataSet"),
@@ -580,7 +579,13 @@ lmGeneric <- function(formula,data,
 								 valcolnamescoretable="Y",
 								 scoretablename= ifelse(is.FLTableMD(data),
 										                    "FLLinRegrMDSScore",
-										                    "FLLinRegrScore"))}
+										                    "FLLinRegrScore"))
+            vfcalls <- c(vfcalls,
+                        ID = ifelse(vfcalls[["functionName"]] == "FLLinRegrSP",
+                                                "DATASETID",
+                                                "MODELID"))
+         }
+    }
 
 	else if(familytype=="logistic"){
 		if(direction=="sf")  vfcalls<-c(functionName="FLLogRegrSF",
@@ -1735,21 +1740,9 @@ prepareData.character <- prepareData.formula
     parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
                                                     "(",fixed=T))[2],",",fixed=T))[1]
     if(property=="coefficients"){
-      # browser()
         coefficientsvector <- coefficients(object)
         assign(parentObject,object,envir=parent.frame())
         return(coefficientsvector)
-    }
-    else if (property=="residuals"){
-        residualsvector <- residuals(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(residualsvector)
-    }
-    else if(property=="fitted.values")
-    {
-        fitvector <- fitted.values.FLGAM(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(fitvector)
     }
     else if(property=="FLCoeffStdErr")
     {
@@ -1799,128 +1792,126 @@ prepareData.character <- prepareData.formula
     {
         return(object@results[["call"]])
     }
-    else if(property=="FLLinRegrStats")
-    {
-        if(!is.null(object@results[["FLLinRegrStats"]]))
-            return(object@results[["FLLinRegrStats"]])
-        else
-        {
-            sqlstr <- paste0("SELECT * FROM ",object@vfcalls[["statstablename"]]," \n",
-                             " WHERE AnalysisID=",fquote(object@AnalysisID),
-                             " \nAND ModelID=",object@results[["modelID"]])
-
-            statsdataframe <- sqlQuery(getFLConnection(),sqlstr)
-            object@results <- c(object@results,list(FLLinRegrStats=statsdataframe))
-            assign(parentObject,object,envir=parent.frame())
-            return(statsdataframe)
-        }
-    }
     else if(property=="df.residual")
     {
         if(object@vfcalls["functionName"] == "FLRobustRegr")
             return(NULL)
         else
         {
-            statsdataframe <- object$FLLinRegrStats
-            colnames(statsdataframe) <- toupper(colnames(statsdataframe))
-            dfResidualVector <- statsdataframe[["DFRESIDUAL"]]
-            object@results <- c(object@results,list(df.residual=dfResidualVector))
+            statsList <- object$regrstats
+            ##TODO: from the list you get above for each model,
+            ## subset it for DFRESIDUAL and return  list of DFRESIDUALS for each model.
+            # colnames(statsdataframe) <- toupper(colnames(statsdataframe))
+            # dfResidualVector <- statsdataframe[["DFRESIDUAL"]]
+            dfResidualList <- list(statsList$Model1$coeffframe, statsList$Model2$coeffframe)
+            object@results <- c(object@results,list(df.residual=dfResidualList))
             assign(parentObject,object,envir=parent.frame())
-            return(dfResidualVector)
+            return(dfResidualList)
         }
     }
-    else if(property=="model")
-    {
-        ## The Column order may not be same as
-        ## in formula object because add. columns
-        ## may be added by categorical trans.
-        ##This might stop any parent script!!
-        ##Need something that has wait time and
-        ## Default value.
-        modelframe <- model.FLLinRegr(object)
-        ## Do not store. Better to fetch each time as
-        ## it saves memory and not much time loss in
-        ## Fetching.
-        ##object@results <- c(object@results,list(model=modelframe))
+    else if (property=="residuals"){
+        residualsvector <- residuals(object)
         assign(parentObject,object,envir=parent.frame())
-        return(modelframe)
+        return(residualsvector)
     }
-    else if(property=="x")
+    else if(property=="fitted.values")
     {
-        if(!is.null(object@results[["x"]]))
-            return(object@results[["x"]])
-
-        modelframe <- getXMatrix(object,
-                                 pDropCols=c(-1))
-        object@results <- c(object@results,list(x=modelframe))
+        fitvector <- fitted.values.FLGAM(object)
         assign(parentObject,object,envir=parent.frame())
-        return(modelframe)
+        return(fitvector)
     }
-    else if(property=="y")
-    {
-        ##This is safer from simple subsetting of
-        ## WideTable as whereConditions may exist
-        if(!is.null(object@results[["y"]]))
-            return(object@results[["y"]])
-        else
-        {
-            vtablename <- getTableNameSlot(object@deeptable)
-            obs_id_colname <- getObsIdSQLExpression(object@deeptable)
-            var_id_colname <- getVarIdSQLExpression(object@deeptable)
-            cell_val_colname <- getValueSQLExpression(object@deeptable)
+    # else if(property=="model")
+    # {
+    #     ## The Column order may not be same as
+    #     ## in formula object because add. columns
+    #     ## may be added by categorical trans.
+    #     ##This might stop any parent script!!
+    #     ##Need something that has wait time and
+    #     ## Default value.
+    #     modelframe <- model.FLLinRegr(object)
+    #     ## Do not store. Better to fetch each time as
+    #     ## it saves memory and not much time loss in
+    #     ## Fetching.
+    #     ##object@results <- c(object@results,list(model=modelframe))
+    #     assign(parentObject,object,envir=parent.frame())
+    #     return(modelframe)
+    # }
+    # else if(property=="x")
+    # {
+    #     if(!is.null(object@results[["x"]]))
+    #         return(object@results[["x"]])
 
-            sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
-                             obs_id_colname," AS vectorIndexColumn,\n",
-                             cell_val_colname," AS vectorValueColumn\n",
-                             " FROM ",vtablename,
-                             " \nWHERE ",var_id_colname," = -1 \n")
+    #     modelframe <- getXMatrix(object,
+    #                              pDropCols=c(-1))
+    #     object@results <- c(object@results,list(x=modelframe))
+    #     assign(parentObject,object,envir=parent.frame())
+    #     return(modelframe)
+    # }
+    # else if(property=="y")
+    # {
+    #     ##This is safer from simple subsetting of
+    #     ## WideTable as whereConditions may exist
+    #     if(!is.null(object@results[["y"]]))
+    #         return(object@results[["y"]])
+    #     else
+    #     {
+    #         vtablename <- getTableNameSlot(object@deeptable)
+    #         obs_id_colname <- getObsIdSQLExpression(object@deeptable)
+    #         var_id_colname <- getVarIdSQLExpression(object@deeptable)
+    #         cell_val_colname <- getValueSQLExpression(object@deeptable)
 
-            tblfunqueryobj <- new("FLTableFunctionQuery",
-                                  connectionName = getFLConnectionName(),
-                                  variables = list(
-                                      obs_id_colname = "vectorIndexColumn",
-                                      cell_val_colname = "vectorValueColumn"),
-                                  whereconditions="",
-                                  order = "",
-                                  SQLquery=sqlstr)
+    #         sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
+    #                          obs_id_colname," AS vectorIndexColumn,\n",
+    #                          cell_val_colname," AS vectorValueColumn\n",
+    #                          " FROM ",vtablename,
+    #                          " \nWHERE ",var_id_colname," = -1 \n")
 
-            yvector <- newFLVector(
-                select = tblfunqueryobj,
-                Dimnames = list(object@deeptable@Dimnames[[1]],
-                                "vectorValueColumn"),
-                dims = as.integer(c(nrow(object@deeptable),1)),
-                isDeep = FALSE)
-            object@results <- c(object@results,list(y=yvector))
-            assign(parentObject,object,envir=parent.frame())
-            return(yvector)
-        }
-    }
-    else if(property=="qr" || property=="rank")
-    {
-        if(!is.null(object@results[["qr"]]))
-        {
-            if(property=="qr")
-                return(object@results[["qr"]])
-            else if(property=="rank")
-                return(object@results[["qr"]]$rank)
-        }
-        else
-        {
-            modelmatrix <- object$x
-            if(nrow(modelmatrix)>700
-               || ncol(modelmatrix)>700)
-                modelmatrix <- as.matrix(modelmatrix)
-                                        # modelmatrix <- as.matrix(object$x)
-                                        # qrList <- base::qr(modelmatrix)
-            qrList <- qr(modelmatrix)
-            vrank <- qrList$rank
-            object@results <- c(object@results,list(qr=qrList))
-            assign(parentObject,object,envir=parent.frame())
-            if(property=="qr")
-                return(qrList)
-            else if(property=="rank") return(vrank)
-        }
-    }
+    #         tblfunqueryobj <- new("FLTableFunctionQuery",
+    #                               connectionName = getFLConnectionName(),
+    #                               variables = list(
+    #                                   obs_id_colname = "vectorIndexColumn",
+    #                                   cell_val_colname = "vectorValueColumn"),
+    #                               whereconditions="",
+    #                               order = "",
+    #                               SQLquery=sqlstr)
+
+    #         yvector <- newFLVector(
+    #             select = tblfunqueryobj,
+    #             Dimnames = list(object@deeptable@Dimnames[[1]],
+    #                             "vectorValueColumn"),
+    #             dims = as.integer(c(nrow(object@deeptable),1)),
+    #             isDeep = FALSE)
+    #         object@results <- c(object@results,list(y=yvector))
+    #         assign(parentObject,object,envir=parent.frame())
+    #         return(yvector)
+    #     }
+    # }
+    # else if(property=="qr" || property=="rank")
+    # {
+    #     if(!is.null(object@results[["qr"]]))
+    #     {
+    #         if(property=="qr")
+    #             return(object@results[["qr"]])
+    #         else if(property=="rank")
+    #             return(object@results[["qr"]]$rank)
+    #     }
+    #     else
+    #     {
+    #         modelmatrix <- object$x
+    #         if(nrow(modelmatrix)>700
+    #            || ncol(modelmatrix)>700)
+    #             modelmatrix <- as.matrix(modelmatrix)
+    #                                     # modelmatrix <- as.matrix(object$x)
+    #                                     # qrList <- base::qr(modelmatrix)
+    #         qrList <- qr(modelmatrix)
+    #         vrank <- qrList$rank
+    #         object@results <- c(object@results,list(qr=qrList))
+    #         assign(parentObject,object,envir=parent.frame())
+    #         if(property=="qr")
+    #             return(qrList)
+    #         else if(property=="rank") return(vrank)
+    #     }
+    # }
     else if(property=="terms")
     {
         if(!is.null(object@results[["terms"]]))
@@ -1970,26 +1961,25 @@ prepareData.character <- prepareData.formula
 
     else if(property=="regrstats")
     {
-      # browser()
       vcoeffList <- object$coefficients
       coeffframe <- object@results[["coeffframe"]]
       if(is.null(object@results[["statsframe"]]))
         statsframe <- sqlQuery(getFLConnection(),
                                paste0("SELECT * FROM ",object@vfcalls["statstablename"],
                                       " WHERE AnalysisID=",fquote(object@AnalysisID),
-                                      " ORDER BY MODELID "))
+                                      " ORDER BY ", object@vfcalls[["ID"]]))
       else statsframe <- object@results[["statsframe"]]
       colnames(statsframe) <- toupper(colnames(statsframe))
       vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
                          function(x){
-                           vtemp <- coeffframe[coeffframe[,"MODELID"]==x,]
+                           vtemp <- coeffframe[coeffframe[,object@vfcalls[["ID"]]]==x,]
                            vrownames <- vtemp[["COEFFNAMES"]]
                            vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
                            vcoeffmat <- as.matrix(vtemp)
                            rownames(vcoeffmat) <- vrownames
                            colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
                                                     "p-value","non-zero Density","Correl With Residual")
-                           vtemp <- statsframe[statsframe[,"MODELID"]==x,]
+                           vtemp <- statsframe[statsframe[,object@vfcalls[["ID"]]]==x,]
                            vsummaryList <- list(coeffframe=vcoeffmat,
                                                 statsframe=vtemp,
                                                 call=object$call)
@@ -2255,19 +2245,19 @@ prepareData.character <- prepareData.formula
         statsframe <- sqlQuery(getFLConnection(),
                                paste0("SELECT * FROM ",object@vfcalls["statstablename"],
                                       " WHERE AnalysisID=",fquote(object@AnalysisID),
-                                      " ORDER BY DATASETID "))
+                                      " ORDER BY  ", object@vfcalls[["ID"]]))
       else statsframe <- object@results[["statsframe"]]
       colnames(statsframe) <- toupper(colnames(statsframe))
       vresList <- lapply(unlist(object@deeptable@Dimnames[[1]]),
                          function(x){
-                           vtemp <- coeffframe[coeffframe[,"DATASETID"]==x,]
+                           vtemp <- coeffframe[coeffframe[, object@vfcalls[["ID"]]]==x,]
                            vrownames <- vtemp[["COEFFNAMES"]]
                            vtemp <- vtemp[,c("COEFFVALUE","STDERR","TSTAT","PVALUE","NONZERODENSITY","CORRELWITHRES")]
                            vcoeffmat <- as.matrix(vtemp)
                            rownames(vcoeffmat) <- vrownames
                            colnames(vcoeffmat) <- c("Estimate","Std.Err","t-stat",
                                                     "p-value","non-zero Density","Correl With Residual")
-                           vtemp <- statsframe[statsframe[,"DATASETID"]==x,]
+                           vtemp <- statsframe[statsframe[, object@vfcalls[["ID"]]]==x,]
                            vsummaryList <- list(coeffframe=vcoeffmat,
                                                 statsframe=vtemp,
                                                 call=object$call)
@@ -2928,17 +2918,23 @@ lm.influence.FLLinRegr <- function(model,do.coef=TRUE,...){
 
 ##Return list of coefficients vectors
 coefficients.FLLinRegrMD <- function(object){
-  # browser()
 	if(!is.null(object@results[["coefficients"]]))
 	return(object@results[["coefficients"]])
 	else
 	{
+        FLCoeffStats <- c(object@results$mod["FLCoeffStdErr"],
+                        object@results$mod["FLCoeffPValue"],
+                        object@results$mod["FLCoeffTStat"],
+                        object@results$mod["FLCoeffCorrelWithRes"],
+                        object@results$mod["FLCoeffNonZeroDensity"])
+        vfcalls <- object@vfcalls
+
 		if(isDeep(object@table)){
 			coeffVector <- sqlQuery(getFLConnection(),
 								paste0("SELECT * FROM ",object@vfcalls["coefftablename"],
 										" where AnalysisID=",fquote(object@AnalysisID),
-										" AND ModelID IN(",paste0(unlist(object@deeptable@Dimnames[[1]]),collapse=","),
-										") ORDER BY ModelID,CoeffID"))
+										" AND ", vfcalls[["ID"]] ," IN(",paste0(unlist(object@deeptable@Dimnames[[1]]),collapse=","),
+										") ORDER BY ", vfcalls[["ID"]] ,",CoeffID"))
             colnames(coeffVector) <- toupper(colnames(coeffVector))
 			vcoeffnames <- as.vector(apply(coeffVector,1,
 										function(x){
@@ -2955,15 +2951,15 @@ coefficients.FLLinRegrMD <- function(object){
 										   " WHERE a.Final_VarID = b.CoeffID \n",
 											" AND a.AnalysisID = ",fquote(object@wideToDeepAnalysisID),
 											"\n AND b.AnalysisID = ",fquote(object@AnalysisID),
-											"\n AND a.groupID = b.modelID ",
-											"\n AND b.ModelID IN(",
+											"\n AND a.groupID = b. ", object@vfcalls[["ID"]],
+											"\n AND b.", object@vfcalls[["ID"]] ," IN(",
 												paste0(unlist(object@deeptable@Dimnames[[1]]),
 													collapse=","),
-											")\n ORDER BY ModelID,CoeffID"))
+											")\n ORDER BY ", object@vfcalls[["ID"]] ,",CoeffID"))
 			colnames(vcoeffframe) <- toupper(colnames(vcoeffframe))
 			want <- all.vars(object@formula)
 			want <- want[2:length(want)]
-			q <- dlply(vcoeffframe,"MODELID",function(x){
+			q <- dlply(vcoeffframe, object@vfcalls[["ID"]],function(x){
 						c(1,unlist(sapply(want,
 								function(y)
 									which(
@@ -2987,113 +2983,126 @@ coefficients.FLLinRegrMD <- function(object){
 
 		coeffVector[["COEFFNAMES"]] <- vcoeffnames
 
-		vcoeffList <- dlply(coeffVector,"MODELID",
+		vcoeffList <- dlply(coeffVector, object@vfcalls[["ID"]],
 							function(x){
 								vcoeff <- x[["COEFFVALUE"]]
 								names(vcoeff) <- x[["COEFFNAMES"]]
 								return(vcoeff)
 								})
 		names(vcoeffList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
+
+        FLCoeffStats <- FLCoeffStats[FLCoeffStats!= ""]
+        FLCoeffStats  <- lapply(FLCoeffStats,
+                                function(x){
+                                    vcoeffList <- dlply(coeffVector, object@vfcalls[["ID"]],
+                                                        function(y){
+                                                            vcoeff <- y[[x]]
+                                                            names(vcoeff) <- y[["COEFFNAMES"]]
+                                                            return(vcoeff)
+                                                            })
+		                            names(vcoeffList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
+                                    return(vcoeffList)
+                                })
+        object@results <- c(object@results,
+                            list(coefficients=vcoeffList,
+                                coeffframe=coeffVector),
+                            FLCoeffStats)
 
 		parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
 		                                                "(",fixed=T))[2],",",fixed=T))[1]
-		object@results[["coefficients"]] <- vcoeffList
-		object@results[["coeffframe"]] <- coeffVector
+		# object@results[["coefficients"]] <- vcoeffList
+		# object@results[["coeffframe"]] <- coeffVector
 		assign(parentObject,object,envir=parent.frame())
 		return(vcoeffList)
 	}
 }
 
 
-coefficients.FLLinRegrMDS <- function(object){
-	if(!is.null(object@results[["coefficients"]]))
-	    return(object@results[["coefficients"]])
-	else
-	{
-        # browser()
-		if(isDeep(object@table)){
-			coeffVector <- sqlQuery(getFLConnection(),
-								paste0("SELECT * FROM ",object@vfcalls["coefftablename"],
-										" where AnalysisID=",fquote(object@AnalysisID),
-										" AND DatasetID IN(",paste0(unlist(object@deeptable@Dimnames[[1]]),collapse=","),
-										") ORDER BY DatasetID,CoeffID"))
-            colnames(coeffVector) <- toupper(colnames(coeffVector))
-			vcoeffnames <- as.vector(apply(coeffVector,1,
-										function(x){
-											if(as.numeric(x[["COEFFID"]])=="0")
-												return("(Intercept)")
-											else return(paste0("Var",x[["COEFFID"]]))
-										}))
-		}
-		else{
-			vcoeffframe <- sqlQuery(getFLConnection(),
-									paste0("SELECT a.*,b.* \n",
-										   " FROM fzzlRegrDataPrepMDMap AS a, \n ",
-										   object@vfcalls["coefftablename"]," AS b \n",
-										   " WHERE a.Final_VarID = b.CoeffID \n",
-											" AND a.AnalysisID = ",fquote(object@wideToDeepAnalysisID),
-											"\n AND b.AnalysisID = ",fquote(object@AnalysisID),
-											"\n AND a.groupID = b.DatasetID ",
-											"\n AND b.DatasetID IN(",
-												paste0(unlist(object@deeptable@Dimnames[[1]]),
-													collapse=","),
-											")\n ORDER BY DatasetID,CoeffID"))
-			colnames(vcoeffframe) <- toupper(colnames(vcoeffframe))
-			want <- all.vars(object@formula)
-			want <- want[2:length(want)]
-			q <- dlply(vcoeffframe,"DATASETID",function(x){
-						c(1,unlist(sapply(want,
-								function(y)
-									which(
-										as.character(x[["COLUMN_NAME"]][-1]) %in% y)
-										))+1)
-						})
-			for(i in 2:length(q)){
-				q[[i]] <- q[[i]]+length(q[[i-1]])
-			}
+# coefficients.FLLinRegrMDS <- function(object){
 
-			coeffVector <- vcoeffframe[unlist(q),]
-			vcoeffnames <- as.vector(apply(coeffVector,1,
-										function(x){
-											if(x[["COLUMN_NAME"]]=="INTERCEPT")
-												return("(Intercept)")
-											else if(tolower(x["VAR_TYPE"])=="category")
-												return(paste0(x["COLUMN_NAME"],x["CATVALUE"]))
-											else return(x["COLUMN_NAME"])
-										}))
-		}
+# 	if(!is.null(object@results[["coefficients"]]))
+# 	    return(object@results[["coefficients"]])
+# 	else
+# 	{
+#         # browser()
+# 		if(isDeep(object@table)){
+# 			coeffVector <- sqlQuery(getFLConnection(),
+# 								paste0("SELECT * FROM ",object@vfcalls["coefftablename"],
+# 										" where AnalysisID=",fquote(object@AnalysisID),
+# 										" AND DatasetID IN(",paste0(unlist(object@deeptable@Dimnames[[1]]),collapse=","),
+# 										") ORDER BY DatasetID,CoeffID"))
+#             colnames(coeffVector) <- toupper(colnames(coeffVector))
+# 			vcoeffnames <- as.vector(apply(coeffVector,1,
+# 										function(x){
+# 											if(as.numeric(x[["COEFFID"]])=="0")
+# 												return("(Intercept)")
+# 											else return(paste0("Var",x[["COEFFID"]]))
+# 										}))
+# 		}
+# 		else{
+# 			vcoeffframe <- sqlQuery(getFLConnection(),
+# 									paste0("SELECT a.*,b.* \n",
+# 										   " FROM fzzlRegrDataPrepMDMap AS a, \n ",
+# 										   object@vfcalls["coefftablename"]," AS b \n",
+# 										   " WHERE a.Final_VarID = b.CoeffID \n",
+# 											" AND a.AnalysisID = ",fquote(object@wideToDeepAnalysisID),
+# 											"\n AND b.AnalysisID = ",fquote(object@AnalysisID),
+# 											"\n AND a.groupID = b.DatasetID ",
+# 											"\n AND b.DatasetID IN(",
+# 												paste0(unlist(object@deeptable@Dimnames[[1]]),
+# 													collapse=","),
+# 											")\n ORDER BY DatasetID,CoeffID"))
+# 			colnames(vcoeffframe) <- toupper(colnames(vcoeffframe))
+# 			want <- all.vars(object@formula)
+# 			want <- want[2:length(want)]
+# 			q <- dlply(vcoeffframe,"DATASETID",function(x){
+# 						c(1,unlist(sapply(want,
+# 								function(y)
+# 									which(
+# 										as.character(x[["COLUMN_NAME"]][-1]) %in% y)
+# 										))+1)
+# 						})
+# 			for(i in 2:length(q)){
+# 				q[[i]] <- q[[i]]+length(q[[i-1]])
+# 			}
 
-		coeffVector[["COEFFNAMES"]] <- vcoeffnames
+# 			coeffVector <- vcoeffframe[unlist(q),]
+# 			vcoeffnames <- as.vector(apply(coeffVector,1,
+# 										function(x){
+# 											if(x[["COLUMN_NAME"]]=="INTERCEPT")
+# 												return("(Intercept)")
+# 											else if(tolower(x["VAR_TYPE"])=="category")
+# 												return(paste0(x["COLUMN_NAME"],x["CATVALUE"]))
+# 											else return(x["COLUMN_NAME"])
+# 										}))
+# 		}
 
-		vcoeffList <- dlply(coeffVector,"DATASETID",
-							function(x){
-								vcoeff <- x[["COEFFVALUE"]]
-								names(vcoeff) <- x[["COEFFNAMES"]]
-								return(vcoeff)
-								})
-		names(vcoeffList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
-		parentObject <- unlist(strsplit(unlist(strsplit(as.character
-							(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-		object@results[["coefficients"]] <- vcoeffList
-		object@results[["coeffframe"]] <- coeffVector
-		assign(parentObject,object,envir=parent.frame())
-		return(vcoeffList)
-	}
-}
+# 		coeffVector[["COEFFNAMES"]] <- vcoeffnames
+
+# 		vcoeffList <- dlply(coeffVector,"DATASETID",
+# 							function(x){
+# 								vcoeff <- x[["COEFFVALUE"]]
+# 								names(vcoeff) <- x[["COEFFNAMES"]]
+# 								return(vcoeff)
+# 								})
+# 		names(vcoeffList) <- paste0("Model",unlist(object@deeptable@Dimnames[[1]]))
+# 		parentObject <- unlist(strsplit(unlist(strsplit(as.character
+# 							(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+# 		object@results[["coefficients"]] <- vcoeffList
+# 		object@results[["coeffframe"]] <- coeffVector
+# 		assign(parentObject,object,envir=parent.frame())
+# 		return(vcoeffList)
+# 	}
+# }
 
 #' @export
 summary.FLLinRegrMD <- function(object){
 	`$.FLLinRegrMD`(object, property = "regrstats")
 }
 
-
-#' @export
-summary.FLLinRegrMDS <- function(object){
-  `$.FLLinRegrMDS`(object, property = "regrstats")
-}
-
 #' @export
 get.summary.FLLinRegrMD <- function(object){
+  browser()
   `$.FLLinRegrMD`(object, property = "regrstats")
 	ret <- object@results[["statsframe"]] #object$statsframe
 	cat("Call:\n")
@@ -3118,35 +3127,13 @@ get.summary.FLLinRegrMD <- function(object){
 setMethod("show","FLLinRegrMD", get.summary.FLLinRegrMD)
 
 #' @export
-get.summary.FLLinRegrMDS <- function(object){
-  `$.FLLinRegrMDS`(object, property = "regrstats")
-	ret <- object@results[["statsframe"]] #object$statsframe
-	cat("Call:\n")
-	cat(paste0(object$call),"\n")
-	cat("\n\nCoefficients:\n")
-    vcoeffList <- coefficients(object)
-    print(vcoeffList)
-    #print(object@results[["coeffframe"]])
-	cat("\n---\n")
-	cat("Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 '' 1\n")
-	cat("Residual standard error: ",ret[["MSRESIDUAL"]]," on ",ret[["DFRESIDUAL"]]," degrees of freedom\n\n")
-	cat("Multiple R-squared: ",ret[["RSQUARED"]]," , Adjusted R-squared: ",ret[["ADJRSQUARED"]],"\n")
-	FStatPVal<-pf(ret[["FSTAT"]],ret[["DFREGRESSION"]],ret[["DFRESIDUAL"]],lower.tail=FALSE)
-	cat("F-statistic: ",ret[["FSTAT"]]," on ",ret[["DFREGRESSION"]]," and ",ret[["DFRESIDUAL"]]
-		,"DF , p-value: ",FStatPVal,"\n")
-	cat("MSRegression: ",ret[["MSREGRESSION"]]," , SigFStat: ",ret[["SIGFSTAT"]],"\n")
-	cat("DWStat: ",ret[["DWSTAT"]]," , ResidualAutoCorrel: ",ret[["RESIDUALAUTOCORREL"]],"\n")
-	cat("BPStat: ",ret[["BPSTAT"]]," , SigBPStat: ",ret[["SIGBPSTAT"]],"\n")
-}
-
-#' @export
-setMethod("show","FLLinRegrMDS", get.summary.FLLinRegrMDS)
+setMethod("show","FLLinRegrMDS", get.summary.FLLinRegrMD)
 
 #' @export
 print.FLLinRegrMD <- summary.FLLinRegrMD
 
 #' @export
-print.FLLinRegrMDS <- summary.FLLinRegrMDS
+print.FLLinRegrMDS <- summary.FLLinRegrMD
 
 #' @export
 `[[.FLLinRegr`<-function(object,property){
