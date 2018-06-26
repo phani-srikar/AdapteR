@@ -16,7 +16,7 @@ An S4 class to represent FLTableMD, an in-database data.frame.
 
 \item{\code{isDeep}}{logical (currently ignored)}
 
-\item{\code{mapSelect}}{\code{FLSelectFrom} object which contains the 
+\item{\code{mapSelect}}{\code{FLSelectFrom} object which contains the
 mapping information if any}
 }}
 

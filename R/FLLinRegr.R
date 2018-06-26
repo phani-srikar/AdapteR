@@ -2134,15 +2134,25 @@ prepareData.character <- prepareData.formula
         else
         {
             vtablename <- getTableNameSlot(object@deeptable)
+            vgroupid <- getGroupIdSQLExpression(object@deeptable)
             obs_id_colname <- getObsIdSQLExpression(object@deeptable)
             var_id_colname <- getVarIdSQLExpression(object@deeptable)
             cell_val_colname <- getValueSQLExpression(object@deeptable)
 
-            sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
+            if(object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+                sqlstr <- paste0("SELECT ", vgroupid, " AS vectorIdColumn,\n",
                              obs_id_colname," AS vectorIndexColumn,\n",
                              cell_val_colname," AS vectorValueColumn\n",
                              " FROM ",vtablename,
                              " \nWHERE ",var_id_colname," = -1 \n")
+            }
+            else {
+                sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
+                             obs_id_colname," AS vectorIndexColumn,\n",
+                             cell_val_colname," AS vectorValueColumn\n",
+                             " FROM ",vtablename,
+                             " \nWHERE ",var_id_colname," = -1 \n")
+            }
 
             tblfunqueryobj <- new("FLTableFunctionQuery",
                                   connectionName = getFLConnectionName(),
@@ -2476,17 +2486,17 @@ residuals.FLLinRegrMD<-function(object)
 #' @export
 residuals.FLLinRegrMDS<-function(object)
 {
-  if(!is.null(object@results[["residuals"]]))
-    return(object@results[["residuals"]])
-  else
-  {
-    residualsvector <- calcResiduals(object=object)
-    object@results <- c(object@results,list(residuals=residualsvector))
-    parentObject <- unlist(strsplit(unlist(strsplit(
-      as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-    assign(parentObject,object,envir=parent.frame())
-    return(residualsvector)
-  }
+    if(!is.null(object@results[["residuals"]]))
+        return(object@results[["residuals"]])
+    else
+    {
+        residualsvector <- calcResiduals(object=object)
+        object@results <- c(object@results,list(residuals=residualsvector))
+        parentObject <- unlist(strsplit(unlist(strsplit(
+        as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+        assign(parentObject,object,envir=parent.frame())
+        return(residualsvector)
+    }
 }
 
 ## move to file lm.R
@@ -2631,28 +2641,6 @@ predict.FLLinRegr <- function(object,
                              ...))
 }
 
-#' @export
-predict.FLLinRegrMD <- function(object,
-                              newdata=object@table,
-                              scoreTable="",
-                              ...){
-
-    return(predict.lmGeneric(object,newdata=newdata,
-                             scoreTable=scoreTable,
-                             ...))
-}
-
-#' @export
-predict.FLLinRegrMD <- function(object,
-                                newdata=object@table,
-                                scoreTable="",
-                                ...){
-
-  return(predict.lmGeneric(object,newdata=newdata,
-                           scoreTable=scoreTable,
-                           ...))
-}
-
 predict.FLRobustRegr <- function(object,
                                  newdata=object@table,
                                  scoreTable="",
@@ -2728,7 +2716,6 @@ predict.lmGeneric <- function(object,
     if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet" || object@vfcalls["functionName"] == "FLLinRegrSP") {
         vinputCols <- c(vinputCols,
                         WhereClause = "NULL")
-        vfcalls["scoretablename"] <- "FLLinRegrMDSScore"
     }
 
     else if(!object@vfcalls["functionName"]=="FLPoissonRegr")
@@ -2760,14 +2747,13 @@ predict.lmGeneric <- function(object,
 		# 					vfcalls["valcolnamescoretable"]," AS vectorValueColumn",
 		# 				" FROM ",scoreTable)
 
-		tblfunqueryobj <- new("FLTableFunctionQuery",
-	                        connectionName = getFLConnectionName(),
-	                        variables = list(
-				                obs_id_colname = "vectorIndexColumn",
-				                cell_val_colname = "vectorValueColumn"),
-	                        whereconditions="",
-	                        order = "",
-	                        SQLquery=sqlstr)
+	    tblfunqueryobj <- new("FLTableFunctionQuery",
+	                          connectionName = getFLConnectionName(),
+	                          variables = list(obs_id_colname = "vectorIndexColumn",
+	                                           cell_val_colname = "vectorValueColumn"),
+	                          whereconditions = "",
+	                          order = "",
+	                          SQLquery = sqlstr)
 
 		flv <- newFLVector(
 					select = tblfunqueryobj,
@@ -3102,7 +3088,6 @@ summary.FLLinRegrMD <- function(object){
 
 #' @export
 get.summary.FLLinRegrMD <- function(object){
-  browser()
   `$.FLLinRegrMD`(object, property = "regrstats")
 	ret <- object@results[["statsframe"]] #object$statsframe
 	cat("Call:\n")
@@ -3196,10 +3181,20 @@ getFittedValuesLogRegrSQL.FLTableDeep.TDAster <- getFittedValuesLogRegrSQL.FLTab
 
 getFittedValuesLogRegrSQL.default <- function(object,newdata,scoreTable){
     vobsid <- getObsIdSQLExpression(newdata)
+    vgroupid <- getGroupIdSQLExpression(newdata)
     vfcalls <- object@vfcalls
-    getFLVectorTableFunctionQuerySQL(indexColumn=vobsid,
+
+    if(object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+        getFLVectorTableFunctionQuerySQL(idColumn=vgroupid,
+                                    indexColumn=vobsid,
                                     valueColumn=vfcalls["valcolnamescoretable"],
                                     FromTable=scoreTable)
+    }
+    else {
+        getFLVectorTableFunctionQuerySQL(indexColumn=vobsid,
+                                    valueColumn=vfcalls["valcolnamescoretable"],
+                                    FromTable=scoreTable)
+    }
 }
 
 getFittedValuesLogRegrSQL.FLpreparedData <- function(object,newdata,scoreTable){

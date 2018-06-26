@@ -461,14 +461,16 @@ calcResiduals <- function(object,
                             "(",constructSelect(vfit),") b \n ",
                       " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
   }
-  else if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet") {
-    sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn, \n ",
+  else if(object@vfcalls["functionName"] == "FLLinRegrSP") {
+    browser()
+    sqlstr <- paste0("SELECT b.vectorIdColumn AS vectorIdColumn, \n ",
                                 "a.vectorIndexColumn AS vectorIndexColumn, \n ",
-                                "(a.vectorValueColumn-b.vectorValueColumn)",
+                                "(a.vectorValueColumn - b.vectorValueColumn)",
                                 " AS vectorValueColumn \n ",
                       " FROM(",constructSelect(vYVector),") a, \n ",
                             "(",constructSelect(vfit),") b \n ",
-                      " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
+                      " WHERE a.vectorIndexColumn = b.vectorIndexColumn ",
+                      " AND a.vectorIdColumn = b.vectorIdColumn")
   }
   else if(object@vfcalls["functionName"]%in%c("FLLogRegr","FLLogRegrWt")){
     if(type=="deviance")

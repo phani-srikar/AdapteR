@@ -542,6 +542,7 @@ coefficients.FLGAM <- function(object)
 #' @export
 fitted.values.FLGAM <- function(object)
 {
+	browser()
     if(!is.null(object@results[["fitted.values"]]))
 	return(object@results[["fitted.values"]])
     else
