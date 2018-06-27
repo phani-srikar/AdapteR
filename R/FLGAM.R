@@ -542,25 +542,29 @@ coefficients.FLGAM <- function(object)
 #' @export
 fitted.values.FLGAM <- function(object)
 {
-	browser()
-    if(!is.null(object@results[["fitted.values"]]))
-	return(object@results[["fitted.values"]])
-    else
-    {
-        if(object@scoreTable=="")
-            # object@scoreTable <- paste0(getOption("ResultDatabaseFL"),".",gen_score_table_name(getTableNameSlot(object@table)))
-            object@scoreTable <- gen_score_table_name(getTableNameSlot(object@table))
-        if(length(object@deeptable@select@variables)>0) {
-          vtbl <- object@deeptable
-        }
-        else vtbl <- object@table
+  if(object@vfcalls[["functionName"]] == "FLLinRegrMultiDataSet") {
+    stop("Not supported for FLTableMD objects")
+  }
+	else {
+		if(!is.null(object@results[["fitted.values"]]))
+			return(object@results[["fitted.values"]])
+		else
+		{
+			if(object@scoreTable=="")
+				# object@scoreTable <- paste0(getOption("ResultDatabaseFL"),".",gen_score_table_name(getTableNameSlot(object@table)))
+				object@scoreTable <- gen_score_table_name(getTableNameSlot(object@table))
+			if(length(object@deeptable@select@variables)>0) {
+			vtbl <- object@deeptable
+			}
+			else vtbl <- object@table
 
-        fitted.valuesVector <- predict(object,vtbl,scoreTable=object@scoreTable)
-        object@results <- c(object@results,list(fitted.values=fitted.valuesVector))
-        parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-        assign(parentObject,object,envir=parent.frame())
-        return(fitted.valuesVector)
-    }
+			fitted.valuesVector <- predict(object,vtbl,scoreTable=object@scoreTable)
+			object@results <- c(object@results,list(fitted.values=fitted.valuesVector))
+			parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
+			assign(parentObject,object,envir=parent.frame())
+			return(fitted.valuesVector)
+		}
+	}
 }
 
 #' @export

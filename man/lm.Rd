@@ -77,14 +77,22 @@ mu <- predict(lmfit,newdata=widetable)
 deeptable <- FLTable(getTestTableName("myLinRegrSmall"),"ObsID","VarID","Num_Val")
 lmfit <- lm(NULL,deeptable)
 summary(lmfit)
-flMDObject <- FLTableMD(table=getTestTableName("tblAutoMPGMD"),
+
+flMDObject <- FLTableMD(table = getTestTableName("tblAbaloneWideMDS"),
                       group_id_colname="GroupID",
-                      obs_id_colname="ObsID",group_id = c(2,4))
-vformula <- MPG~HorsePower+Displacement+Weight+Acceleration
-lmfit <- lm(vformula,
+                      obs_id_colname="ObsID",group_id = c(1,2))
+vformula <- Rings~.
+lmfitMD <- lm(vformula,
            data=flMDObject)
 coeffList <- coef(lmfit)
 summaryList <- summary(lmfit)
+
+flMDSObject <- FLTableMDS(table=getTestTableName("tblAbaloneWideMDS"),
+                      group_id_colname="GroupID",
+                      obs_id_colname="ObsID",group_id = c(1,2))
+vformula <- Rings~.
+lmfitMDS <- lm(vformula,
+           data=flMDSObject)
 }
 \seealso{
 \code{\link[stats]{lm}} for R reference implementation.

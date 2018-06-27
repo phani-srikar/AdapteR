@@ -617,7 +617,6 @@ setMethod("constructSelect", signature(object = "FLTableQuery"),
 ## todo: this needs serious rework:  select@variables should be reflecting variables
 setMethod("constructSelect", signature(object = "FLTable"),
           function(object,...) {
-            browser()
             if(class(object@select)=="FLTableFunctionQuery")
             return(constructSelect(object@select))
               if(!isDeep(object))

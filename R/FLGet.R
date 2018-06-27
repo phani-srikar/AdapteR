@@ -462,7 +462,6 @@ calcResiduals <- function(object,
                       " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
   }
   else if(object@vfcalls["functionName"] == "FLLinRegrSP") {
-    browser()
     sqlstr <- paste0("SELECT b.vectorIdColumn AS vectorIdColumn, \n ",
                                 "a.vectorIndexColumn AS vectorIndexColumn, \n ",
                                 "(a.vectorValueColumn - b.vectorValueColumn)",
