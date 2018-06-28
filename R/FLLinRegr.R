@@ -2190,17 +2190,17 @@ residuals.FLLinRegrMD<-function(object)
 }
 
 #' @export
-residuals.FLLinRegrMDS<-function(object)
+residuals.FLLinRegrMDS <- function(object)
 {
     if(!is.null(object@results[["residuals"]]))
 	    return(object@results[["residuals"]])
     else
     {
-        residualsvector <- calcResiduals(object=object)
-        object@results <- c(object@results,list(residuals=residualsvector))
-        parentObject <- unlist(strsplit(unlist(strsplit(
-            as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-        assign(parentObject,object,envir=parent.frame())
+        residualsvector <- calcResiduals(object = object)
+        object@results <- c(object@results, list(residuals = residualsvector))
+        parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
+                                                        "(", fixed = T))[2], ")", fixed = T))[1]
+        assign(parentObject, object, envir = parent.frame())
         return(residualsvector)
     }
 }
@@ -2398,11 +2398,11 @@ predict.lmGeneric <- function(object,
     newdata <- setAlias(newdata,"")
 
     if(scoreTable=="")
-                                        # scoreTable <- paste0(getOption("ResultDatabaseFL"),".",
-                                        # 					gen_score_table_name(getTableNameSlot(object@table)))
-	scoreTable <- gen_score_table_name(getTableNameSlot(object@table))
-                                        # else if(!grep(".",scoreTable))
-                                        # 		scoreTable <- paste0(getOption("ResultDatabaseFL"),".",scoreTable)
+      # scoreTable <- paste0(getOption("ResultDatabaseFL"),".",
+      # 					gen_score_table_name(getTableNameSlot(object@table)))
+      scoreTable <- gen_score_table_name(getTableNameSlot(object@table))
+    # else if(!grep(".",scoreTable))
+    # 		scoreTable <- paste0(getOption("ResultDatabaseFL"),".",scoreTable)
 
     vinputTable <- getTableNameSlot(newdata)
     vtable <- getTableNameSlot(newdata)
@@ -2419,22 +2419,18 @@ predict.lmGeneric <- function(object,
                     VarIDCol=vvarid,
                     ValCol=vvalue
                     )
-    if(object@vfcalls["functionName"] == "FLLinRegrMultiDataSet" || object@vfcalls["functionName"] == "FLLinRegrSP") {
-        vinputCols <- c(vinputCols,
-                        WhereClause = "NULL")
-    }
 
-    else if(!object@vfcalls["functionName"]=="FLPoissonRegr")
-            vinputCols <- c(vinputCols,
-                            WhereClause="NULL")
+    if(!object@vfcalls["functionName"]=="FLPoissonRegr")
+      vinputCols <- c(vinputCols,
+                      WhereClause = "NULL")
 
     vinputCols <- c(vinputCols,
                     RegrAnalysisID=object@AnalysisID,
                     ScoreTable=scoreTable)
 
 	if(!is.Hadoop())
-	vinputCols <- c(vinputCols,
-					Note=genNote(paste0("Scoring ",vfcalls["note"])))
+	  vinputCols <- c(vinputCols,
+	                  Note = genNote(paste0("Scoring ", vfcalls["note"])))
 
 	AnalysisID <- sqlStoredProc(getFLConnection(),
 								vfcalls["scoretablename"],
@@ -2442,16 +2438,18 @@ predict.lmGeneric <- function(object,
 								pInputParams=vinputCols)
 	AnalysisID <- checkSqlQueryOutput(AnalysisID)
 
-    if(type %in% "link"){
-    	sqlQuery(getFLConnection(),paste0("alter table ",scoreTable," add logit float"))
-    	sqlQuery(getFLConnection(),paste0("update ",scoreTable," set logit = -ln(1/Y - 1) where Y<1"))
-    	object@vfcalls["valcolnamescoretable"]<-"logit"
-    }
+	if(type %in% "link") {
+	  sqlQuery(getFLConnection(), paste0("alter table ", scoreTable, " add logit float"))
+	  sqlQuery(getFLConnection(), paste0("update ", scoreTable, " set logit = -ln(1/Y - 1) where Y<1"))
+	  object@vfcalls["valcolnamescoretable"] <- "logit"
+	}
+
+	flv <- c()
+
+	if (object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+	  for (i in 1:length(newdata@Dimnames[[1]][[1]])) {
 	    sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
-		# sqlstr <- paste0(" SELECT '%insertIDhere%' AS vectorIdColumn,",
-		# 					vobsid," AS vectorIndexColumn,",
-		# 					vfcalls["valcolnamescoretable"]," AS vectorValueColumn",
-		# 				" FROM ",scoreTable)
+	    sqlstr <- paste(sqlstr, " WHERE vectorIdColumn = ", i, sep = "")
 
 	    tblfunqueryobj <- new("FLTableFunctionQuery",
 	                          connectionName = getFLConnectionName(),
@@ -2461,14 +2459,33 @@ predict.lmGeneric <- function(object,
 	                          order = "",
 	                          SQLquery = sqlstr)
 
-		flv <- newFLVector(
-					select = tblfunqueryobj,
-					Dimnames = list(rownames(newdata),
-									"vectorValueColumn"),
-	                dims = as.integer(c(newdata@dims[1],1)),
-					isDeep = FALSE)
+	    newflv <- newFLVector(select = tblfunqueryobj,
+	                          Dimnames = list(rownames(newdata),
+	                                          "vectorValueColumn"),
+	                          dims = as.integer(c(newdata@dims[1], 1)),
+	                          isDeep = FALSE)
+	    flv <- c(flv, newflv)
+	  }
+	}
+	else {
+	  sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
 
-		return(flv)
+	  tblfunqueryobj <- new("FLTableFunctionQuery",
+	                        connectionName = getFLConnectionName(),
+	                        variables = list(obs_id_colname = "vectorIndexColumn",
+	                                         cell_val_colname = "vectorValueColumn"),
+	                        whereconditions = "",
+	                        order = "",
+	                        SQLquery = sqlstr)
+
+	  flv <- newFLVector(select = tblfunqueryobj,
+	                     Dimnames = list(rownames(newdata),
+	                                     "vectorValueColumn"),
+	                     dims = as.integer(c(newdata@dims[1], 1)),
+	                     isDeep = FALSE)
+	}
+
+	return(flv)
 }
 
 #' Print FLLinRegr Object
@@ -2885,21 +2902,21 @@ getFittedValuesLogRegrSQL.FLTable.TDAster <- function(object,newdata,scoreTable)
 
 getFittedValuesLogRegrSQL.FLTableDeep.TDAster <- getFittedValuesLogRegrSQL.FLTable.TDAster
 
-getFittedValuesLogRegrSQL.default <- function(object,newdata,scoreTable){
+getFittedValuesLogRegrSQL.default <- function(object, newdata, scoreTable){
     vobsid <- getObsIdSQLExpression(newdata)
     vgroupid <- getGroupIdSQLExpression(newdata)
     vfcalls <- object@vfcalls
 
     if(object@vfcalls[["functionName"]] == "FLLinRegrSP") {
-        getFLVectorTableFunctionQuerySQL(idColumn=vgroupid,
-                                    indexColumn=vobsid,
-                                    valueColumn=vfcalls["valcolnamescoretable"],
-                                    FromTable=scoreTable)
+      getFLVectorTableFunctionQuerySQL(idColumn = vgroupid,
+                                       indexColumn = vobsid,
+                                       valueColumn = vfcalls["valcolnamescoretable"],
+                                       FromTable = scoreTable)
     }
     else {
-        getFLVectorTableFunctionQuerySQL(indexColumn=vobsid,
-                                    valueColumn=vfcalls["valcolnamescoretable"],
-                                    FromTable=scoreTable)
+      getFLVectorTableFunctionQuerySQL(indexColumn = vobsid,
+                                       valueColumn = vfcalls["valcolnamescoretable"],
+                                       FromTable = scoreTable)
     }
 }
 

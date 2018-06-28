@@ -133,16 +133,16 @@ setClass("FLVector.TDAster", contains = "FLVector")
 
 newFLVector <- function(...) {
   vtemp <- list(...)
-  if(is.null(vtemp$dims)){
-      vtemp$dims <- sapply(vtemp$Dimnames,length)
+  if(is.null(vtemp$dims)) {
+    vtemp$dims <- sapply(vtemp$Dimnames, length)
   }
   a <- do.call("new",
-                 c(Class=paste0("FLVector.",getFLPlatform()),
-                   vtemp))
+               c(Class = paste0("FLVector.", getFLPlatform()),
+                 vtemp))
   if(a@dims[1]==0){
-      a@dims <- c(sqlQuery(connection,paste0("
-SELECT COUNT(1) AS n
-FROM (",constructSelect(a),") flt"))[1,1],1)
+    a@dims <- c(sqlQuery(connection,
+                         paste0("SELECT COUNT(1) AS n FROM (",
+                                constructSelect(a), ") flt"))[1, 1], 1)
   }
   return(a)
 }

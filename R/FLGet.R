@@ -462,14 +462,18 @@ calcResiduals <- function(object,
                       " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
   }
   else if(object@vfcalls["functionName"] == "FLLinRegrSP") {
-    sqlstr <- paste0("SELECT b.vectorIdColumn AS vectorIdColumn, \n ",
+    sqlstr <- list()
+    for (i in 1:length(object@table@Dimnames[[1]][[1]])) {
+      newsqlstr <- paste0("SELECT b.vectorIdColumn AS vectorIdColumn, \n ",
                                 "a.vectorIndexColumn AS vectorIndexColumn, \n ",
                                 "(a.vectorValueColumn - b.vectorValueColumn)",
                                 " AS vectorValueColumn \n ",
-                      " FROM(",constructSelect(vYVector),") a, \n ",
-                            "(",constructSelect(vfit),") b \n ",
-                      " WHERE a.vectorIndexColumn = b.vectorIndexColumn ",
-                      " AND a.vectorIdColumn = b.vectorIdColumn")
+                          " FROM(", constructSelect(vYVector), ") a, \n ",
+                                "(", constructSelect(vfit[[i]]), ") b \n ",
+                          " WHERE a.vectorIndexColumn = b.vectorIndexColumn ",
+                          " AND a.vectorIdColumn = b.vectorIdColumn")
+      sqlstr <- c(sqlstr, newsqlstr)
+    }
   }
   else if(object@vfcalls["functionName"]%in%c("FLLogRegr","FLLogRegrWt")){
     if(type=="deviance")
@@ -531,28 +535,53 @@ calcResiduals <- function(object,
                       " WHERE a.vectorIndexColumn=b.vectorIndexColumn ")
   }
 
-  tblfunqueryobj <- new("FLTableFunctionQuery",
-                        connectionName = attr(connection,"name"),
-                        variables = list(
-                        obs_id_colname = "vectorIndexColumn",
-                        cell_val_colname = "vectorValueColumn"),
-                        whereconditions="",
-                        order = "",
-                        SQLquery=sqlstr)
+  vresidVector <- list()
+  names.vresidVector <- vector(mode = "character")
 
-  flv <- newFLVector(
-              select = tblfunqueryobj,
-              Dimnames = dimnames(vfit),
-              dims = vfit@dims,
-              isDeep = FALSE)
+  if(length(sqlstr) > 1) {
+    for (i in 1:length(sqlstr)) {
+      tblfunqueryobj <- new("FLTableFunctionQuery",
+                          connectionName = attr(connection, "name"),
+                          variables = list(obs_id_colname = "vectorIndexColumn",
+                                           cell_val_colname = "vectorValueColumn"),
+                          whereconditions = "",
+                          order = "",
+                          SQLquery = sqlstr[[i]])
 
-  vresidVector <- ensureQuerySize(pResult=flv,
-                                  pInput=list(object,type,...),
-                                  pOperator="calcResiduals")
+      flv <- newFLVector(select = tblfunqueryobj,
+                         Dimnames = dimnames(vfit[[i]]),
+                         dims = vfit[[i]]@dims,
+                         isDeep = FALSE)
 
-  parentObject <- unlist(strsplit(unlist(strsplit(
-                  as.character(sys.call()),"(",fixed=T))[2],")",fixed=T))[1]
-  assign(parentObject,object,envir=parent.frame())
+      newvresidVector <- ensureQuerySize(pResult = flv,
+                                         pInput = list(object, type, ...),
+                                         pOperator = "calcResiduals")
+
+      vresidVector <- c(vresidVector, newvresidVector)
+    }
+  }
+  else {
+    tblfunqueryobj <- new("FLTableFunctionQuery",
+                          connectionName = attr(connection, "name"),
+                          variables = list(obs_id_colname = "vectorIndexColumn",
+                                           cell_val_colname = "vectorValueColumn"),
+                          whereconditions = "",
+                          order = "",
+                          SQLquery = sqlstr)
+
+    flv <- newFLVector(select = tblfunqueryobj,
+                       Dimnames = dimnames(vfit),
+                       dims = vfit@dims,
+                       isDeep = FALSE)
+
+    vresidVector <- ensureQuerySize(pResult = flv,
+                                    pInput = list(object, type, ...),
+                                    pOperator = "calcResiduals")
+  }
+
+  parentObject <- unlist(strsplit(unlist(strsplit(as.character(sys.call()),
+                                                  "(", fixed = T))[2], ")", fixed = T))[1]
+  assign(parentObject, object, envir = parent.frame())
   return(vresidVector)
 }
 
@@ -622,14 +651,15 @@ getFLPlatformDataTypeMap <- function(pFLType){
     return(pFLType)
 }
 
-getFLVectorTableFunctionQuerySQL <- function(idColumn="'%insertIDhere%'",
-                                            indexColumn,
-                                            valueColumn,
-                                            FromTable){
-    return(paste0(" SELECT ",idColumn," AS vectorIdColumn,",
-                            indexColumn," AS vectorIndexColumn,",
-                            valueColumn," AS vectorValueColumn",
-                    " FROM ",FromTable))
+getFLVectorTableFunctionQuerySQL <- function(idColumn = "'%insertIDhere%'",
+                                             indexColumn,
+                                             valueColumn,
+                                             FromTable,
+                                             groupid = ""){
+  return(paste0(" SELECT ", idColumn, " AS vectorIdColumn,",
+                indexColumn, " AS vectorIndexColumn,",
+                valueColumn, " AS vectorValueColumn",
+                " FROM ", FromTable))
 }
 
 #' @export

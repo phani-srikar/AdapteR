@@ -1132,7 +1132,7 @@ FLGenericRegrDataPrep <- function(object,
     updateMetaTable(pTableName=deeptablename, pType="deepTable")
 
     if(MDFlag){
-      table <- FLTableMD(table=deeptablename,
+      table <- FLTableMDS(table=deeptablename,
                          group_id_colname=inputParams[["OutGroupIDCol"]],
                          obs_id_colname=inputParams[["OutObsIDCol"]],
                          var_id_colname=inputParams[["OutVarIDCol"]],
