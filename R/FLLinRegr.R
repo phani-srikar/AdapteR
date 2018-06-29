@@ -1633,34 +1633,66 @@ prepareData.character <- prepareData.formula
             return(object@results[["y"]])
         else
         {
+            vgroupid <- getGroupIdSQLExpression(object@deeptable)
             vtablename <- getTableNameSlot(object@deeptable)
             obs_id_colname <- getObsIdSQLExpression(object@deeptable)
             var_id_colname <- getVarIdSQLExpression(object@deeptable)
             cell_val_colname <- getValueSQLExpression(object@deeptable)
 
-            sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
-                             obs_id_colname," AS vectorIndexColumn,\n",
-                             cell_val_colname," AS vectorValueColumn\n",
-                             " FROM ",vtablename,
-                             " \nWHERE ",var_id_colname," = -1 \n")
+            yvector <- list()
 
-            tblfunqueryobj <- new("FLTableFunctionQuery",
-                                  connectionName = getFLConnectionName(),
-                                  variables = list(
-                                      obs_id_colname = "vectorIndexColumn",
-                                      cell_val_colname = "vectorValueColumn"),
-                                  whereconditions="",
-                                  order = "",
-                                  SQLquery=sqlstr)
+            if(object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+              browser()
+              newdata <- object@table
+              for (i in 1:length(newdata@Dimnames[[1]][[1]])) {
+                sqlstr <- paste0("SELECT ", vgroupid, " AS vectorIdColumn,\n",
+                                 obs_id_colname, " AS vectorIndexColumn,\n",
+                                 cell_val_colname, " AS vectorValueColumn\n",
+                                 " FROM ", vtablename,
+                                 " \nWHERE ", var_id_colname, " = -1 \n")
 
-            yvector <- newFLVector(
-                select = tblfunqueryobj,
-                Dimnames = list(object@deeptable@Dimnames[[1]],
-                                "vectorValueColumn"),
-                dims = as.integer(c(nrow(object@deeptable),1)),
-                isDeep = FALSE)
-            object@results <- c(object@results,list(y=yvector))
-            assign(parentObject,object,envir=parent.frame())
+                tblfunqueryobj <- new("FLTableFunctionQuery",
+                                      connectionName = getFLConnectionName(),
+                                      variables = list(obs_id_colname = "vectorIndexColumn",
+                                                       cell_val_colname = "vectorValueColumn"),
+                                      whereconditions = "",
+                                      order = "",
+                                      SQLquery = sqlstr)
+
+                newyvector <- newFLVector(select = tblfunqueryobj,
+                                          Dimnames = list(rownames(newdata@Dimnames[[2]][i]),
+                                                          "vectorValueColumn"),
+                                          dims = as.integer(c(newdata@dims[[2]][i], 1)),
+                                          isDeep = FALSE)
+
+                yvector <- c(yvector, newyvector)
+              }
+            }
+            else {
+              browser()
+              sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
+                               obs_id_colname, " AS vectorIndexColumn,\n",
+                               cell_val_colname, " AS vectorValueColumn\n",
+                               " FROM ", vtablename,
+                               " \nWHERE ", var_id_colname, " = -1 \n")
+
+              tblfunqueryobj <- new("FLTableFunctionQuery",
+                                    connectionName = getFLConnectionName(),
+                                    variables = list(obs_id_colname = "vectorIndexColumn",
+                                                     cell_val_colname = "vectorValueColumn"),
+                                    whereconditions = "",
+                                    order = "",
+                                    SQLquery = sqlstr)
+
+              yvector <- newFLVector(select = tblfunqueryobj,
+                                     Dimnames = list(object@deeptable@Dimnames[[1]],
+                                                     "vectorValueColumn"),
+                                     dims = as.integer(c(nrow(object@deeptable), 1)),
+                                     isDeep = FALSE)
+            }
+
+            object@results <- c(object@results, list(y = yvector))
+            assign(parentObject, object, envir = parent.frame())
             return(yvector)
         }
     }
@@ -1737,6 +1769,11 @@ prepareData.character <- prepareData.formula
         }
     }
 
+    else if(property == "regrstats")
+    {
+      `$.FLLinRegrMD`(object, property = "regrstats")
+    }
+
     else if(property=="anova") stop("This feature is not available yet.")
 
     else stop("That's not a valid property \n ")
@@ -1749,97 +1786,99 @@ prepareData.character <- prepareData.formula
                                                     "(",fixed=T))[2],",",fixed=T))[1]
     if(property=="coefficients")
     {
-        coefficientsvector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(coefficientsvector)
+      coefficientsvector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(coefficientsvector)
     }
     else if (property=="residuals")
     {
-        residualsvector <- residuals(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(residualsvector)
+      residualsvector <- residuals(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(residualsvector)
     }
     else if(property=="fitted.values")
     {
-        fitvector <- fitted.values.FLGAM(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(fitvector)
+      fitvector <- fitted.values.FLGAM(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(fitvector)
     }
     else if(property=="FLCoeffStdErr")
     {
-        coeffVector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(object@results[["FLCoeffStdErr"]])
+      coeffVector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(object@results[["FLCoeffStdErr"]])
     }
     else if(property=="FLCoeffTStat")
     {
-        coeffVector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(object@results[["FLCoeffTStat"]])
+      coeffVector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(object@results[["FLCoeffTStat"]])
     }
     else if(property=="FLCoeffPValue")
     {
-        coeffVector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(object@results[["FLCoeffPValue"]])
+      coeffVector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(object@results[["FLCoeffPValue"]])
     }
     else if(property=="FLCoeffNonZeroDensity")
     {
-        coeffVector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(object@results[["FLCoeffNonZeroDensity"]])
+      coeffVector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(object@results[["FLCoeffNonZeroDensity"]])
     }
     else if(property=="FLCoeffCorrelWithRes")
     {
-        coeffVector <- coefficients(object)
-        assign(parentObject,object,envir=parent.frame())
-        return(object@results[["FLCoeffCorrelWithRes"]])
+      coeffVector <- coefficients(object)
+      assign(parentObject, object, envir = parent.frame())
+      return(object@results[["FLCoeffCorrelWithRes"]])
     }
     else if(property == "s")
     {
-        if(!is.null(object@results[["s"]]))
-        {
-            return(object@results[["s"]])
-        }
-        str <- paste0("SELECT * FROM ",object@vfcalls["statstablename"],
-                        " a WHERE a.AnalysisID = '",object@AnalysisID,"'")
-        t <- sqlQuery(connection, str)
-        val <- t[t$Notation == "Mad_S",3]
-        object@results <- c(object@results, list(s = val))
-        assign(parentObject,object,envir=parent.frame())
-        return(val)
-        }
+      if (!is.null(object@results[["s"]]))
+      {
+        return(object@results[["s"]])
+      }
+      str <- paste0("SELECT * FROM ",
+                    object@vfcalls["statstablename"],
+                    " a WHERE a.AnalysisID = '",
+                    object@AnalysisID,
+                    "'")
+      t <- sqlQuery(connection, str)
+      val <- t[t$Notation == "Mad_S", 3]
+      object@results <- c(object@results, list(s = val))
+      assign(parentObject, object, envir = parent.frame())
+      return(val)
+    }
     else if(property=="call")
     {
         return(object@results[["call"]])
     }
     else if(property=="df.residual")
     {
-        if(object@vfcalls["functionName"] == "FLRobustRegr")
-            return(NULL)
-        else
-        {
-            statsList <- object$regrstats
-            ##TODO: from the list you get above for each model,
-            ## subset it for DFRESIDUAL and return  list of DFRESIDUALS for each model.
-            # colnames(statsdataframe) <- toupper(colnames(statsdataframe))
-            # dfResidualVector <- statsdataframe[["DFRESIDUAL"]]
-            dfResidualList <- list(statsList$Model1$coeffframe, statsList$Model2$coeffframe)
-            object@results <- c(object@results,list(df.residual=dfResidualList))
-            assign(parentObject,object,envir=parent.frame())
-            return(dfResidualList)
-        }
+      if (object@vfcalls["functionName"] == "FLRobustRegr")
+        return(NULL)
+      else
+      {
+        statsList <- object$regrstats
+        ##TODO: from the list you get above for each model,
+        ## subset it for DFRESIDUAL and return  list of DFRESIDUALS for each model.
+        # colnames(statsdataframe) <- toupper(colnames(statsdataframe))
+        # dfResidualVector <- statsdataframe[["DFRESIDUAL"]]
+        dfResidualList <- list(statsList$Model1$coeffframe, statsList$Model2$coeffframe)
+        object@results <- c(object@results, list(df.residual = dfResidualList))
+        assign(parentObject, object, envir = parent.frame())
+        return(dfResidualList)
+      }
     }
     else if(property=="x")
     {
-        if(!is.null(object@results[["x"]]))
-            return(object@results[["x"]])
+      if(!is.null(object@results[["x"]]))
+        return(object@results[["x"]])
 
-        modelframe <- getXMatrix(object,
-                                 pDropCols=c(-1))
-        object@results <- c(object@results,list(x=modelframe))
-        assign(parentObject,object,envir=parent.frame())
-        return(modelframe)
+      modelframe <- getXMatrix(object, pDropCols = c(-1))
+      object@results <- c(object@results, list(x = modelframe))
+      assign(parentObject, object, envir = parent.frame())
+      return(modelframe)
     }
     else if(property=="y")
     {
@@ -1856,37 +1895,35 @@ prepareData.character <- prepareData.formula
             cell_val_colname <- getValueSQLExpression(object@deeptable)
 
             if(object@vfcalls[["functionName"]] == "FLLinRegrSP") {
-                sqlstr <- paste0("SELECT ", vgroupid, " AS vectorIdColumn,\n",
-                             obs_id_colname," AS vectorIndexColumn,\n",
-                             cell_val_colname," AS vectorValueColumn\n",
-                             " FROM ",vtablename,
-                             " \nWHERE ",var_id_colname," = -1 \n")
+              sqlstr <- paste0("SELECT ", vgroupid, " AS vectorIdColumn,\n",
+                               obs_id_colname, " AS vectorIndexColumn,\n",
+                               cell_val_colname, " AS vectorValueColumn\n",
+                               " FROM ", vtablename,
+                               " \nWHERE ", var_id_colname, " = -1 \n")
             }
             else {
-                sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
-                             obs_id_colname," AS vectorIndexColumn,\n",
-                             cell_val_colname," AS vectorValueColumn\n",
-                             " FROM ",vtablename,
-                             " \nWHERE ",var_id_colname," = -1 \n")
+              sqlstr <- paste0("SELECT '%insertIDhere%' AS vectorIdColumn,\n",
+                               obs_id_colname, " AS vectorIndexColumn,\n",
+                               cell_val_colname, " AS vectorValueColumn\n",
+                               " FROM ", vtablename,
+                               " \nWHERE ", var_id_colname, " = -1 \n")
             }
 
             tblfunqueryobj <- new("FLTableFunctionQuery",
                                   connectionName = getFLConnectionName(),
-                                  variables = list(
-                                      obs_id_colname = "vectorIndexColumn",
-                                      cell_val_colname = "vectorValueColumn"),
-                                  whereconditions="",
+                                  variables = list(obs_id_colname = "vectorIndexColumn",
+                                                   cell_val_colname = "vectorValueColumn"),
+                                  whereconditions = "",
                                   order = "",
-                                  SQLquery=sqlstr)
+                                  SQLquery = sqlstr)
 
-            yvector <- newFLVector(
-                select = tblfunqueryobj,
-                Dimnames = list(object@deeptable@Dimnames[[1]],
-                                "vectorValueColumn"),
-                dims = as.integer(c(nrow(object@deeptable),1)),
-                isDeep = FALSE)
-            object@results <- c(object@results,list(y=yvector))
-            assign(parentObject,object,envir=parent.frame())
+            yvector <- newFLVector(select = tblfunqueryobj,
+                                   Dimnames = list(object@deeptable@Dimnames[[1]],
+                                                   "vectorValueColumn"),
+                                   dims = as.integer(c(nrow(object@deeptable), 1)),
+                                   isDeep = FALSE)
+            object@results <- c(object@results, list(y = yvector))
+            assign(parentObject, object, envir = parent.frame())
             return(yvector)
         }
     }
@@ -2413,79 +2450,80 @@ predict.lmGeneric <- function(object,
 
     vinputCols <- list()
     vinputCols <- c(vinputCols,
-                    TableName=vtable,
-                    DatasetIDcol=vdatasetid,
-                    ObsIDCol=vobsid,
-                    VarIDCol=vvarid,
-                    ValCol=vvalue
-                    )
+                    TableName = vtable,
+                    DatasetIDcol = vdatasetid,
+                    ObsIDCol = vobsid,
+                    VarIDCol = vvarid,
+                    ValCol = vvalue)
 
     if(!object@vfcalls["functionName"]=="FLPoissonRegr")
       vinputCols <- c(vinputCols,
                       WhereClause = "NULL")
 
     vinputCols <- c(vinputCols,
-                    RegrAnalysisID=object@AnalysisID,
-                    ScoreTable=scoreTable)
+                    RegrAnalysisID = object@AnalysisID,
+                    ScoreTable = scoreTable)
 
-	if(!is.Hadoop())
-	  vinputCols <- c(vinputCols,
-	                  Note = genNote(paste0("Scoring ", vfcalls["note"])))
+    if(!is.Hadoop())
+      vinputCols <- c(vinputCols,
+                      Note = genNote(paste0("Scoring ", vfcalls["note"])))
 
-	AnalysisID <- sqlStoredProc(getFLConnection(),
-								vfcalls["scoretablename"],
-								outputParameter=c(AnalysisID="a"),
-								pInputParams=vinputCols)
-	AnalysisID <- checkSqlQueryOutput(AnalysisID)
+    AnalysisID <- sqlStoredProc(getFLConnection(),
+                                vfcalls["scoretablename"],
+                                outputParameter = c(AnalysisID = "a"),
+                                pInputParams = vinputCols)
+    AnalysisID <- checkSqlQueryOutput(AnalysisID)
 
-	if(type %in% "link") {
-	  sqlQuery(getFLConnection(), paste0("alter table ", scoreTable, " add logit float"))
-	  sqlQuery(getFLConnection(), paste0("update ", scoreTable, " set logit = -ln(1/Y - 1) where Y<1"))
-	  object@vfcalls["valcolnamescoretable"] <- "logit"
-	}
+    if(type %in% "link") {
+      sqlQuery(getFLConnection(), paste0("alter table ", scoreTable, " add logit float"))
+      sqlQuery(getFLConnection(), paste0("update ", scoreTable, " set logit = -ln(1/Y - 1) where Y<1"))
+      object@vfcalls["valcolnamescoretable"] <- "logit"
+    }
 
-	flv <- c()
+    flv <- c()
 
-	if (object@vfcalls[["functionName"]] == "FLLinRegrSP") {
-	  for (i in 1:length(newdata@Dimnames[[1]][[1]])) {
-	    sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
-	    sqlstr <- paste(sqlstr, " WHERE vectorIdColumn = ", i, sep = "")
+  	if (object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+  	  for (i in 1:length(newdata@Dimnames[[1]][[1]])) {
+  	    sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
+  	    sqlstr <- paste(sqlstr, " WHERE vectorIdColumn = ", i, sep = "")
 
-	    tblfunqueryobj <- new("FLTableFunctionQuery",
-	                          connectionName = getFLConnectionName(),
-	                          variables = list(obs_id_colname = "vectorIndexColumn",
-	                                           cell_val_colname = "vectorValueColumn"),
-	                          whereconditions = "",
-	                          order = "",
-	                          SQLquery = sqlstr)
+  	    tblfunqueryobj <- new("FLTableFunctionQuery",
+  	                          connectionName = getFLConnectionName(),
+  	                          variables = list(obs_id_colname = "vectorIndexColumn",
+  	                                           cell_val_colname = "vectorValueColumn"),
+  	                          whereconditions = "",
+  	                          order = "",
+  	                          SQLquery = sqlstr)
 
-	    newflv <- newFLVector(select = tblfunqueryobj,
-	                          Dimnames = list(rownames(newdata),
-	                                          "vectorValueColumn"),
-	                          dims = as.integer(c(newdata@dims[1], 1)),
-	                          isDeep = FALSE)
-	    flv <- c(flv, newflv)
-	  }
-	}
-	else {
-	  sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
+  	    # browser()
+  	    newflv <- newFLVector(select = tblfunqueryobj,
+  	                          Dimnames = list(rownames(newdata@Dimnames[[2]][i]),
+  	                                          "vectorValueColumn"),
+  	                          dims = as.integer(c(newdata@dims[[2]][i], 1)),
+  	                          isDeep = FALSE)
+  	    flv <- c(flv, newflv)
+  	  }
+  	}
+  	else {
+  	  sqlstr <- getFittedValuesLogRegrSQL(object,newdata,scoreTable)
 
-	  tblfunqueryobj <- new("FLTableFunctionQuery",
-	                        connectionName = getFLConnectionName(),
-	                        variables = list(obs_id_colname = "vectorIndexColumn",
-	                                         cell_val_colname = "vectorValueColumn"),
-	                        whereconditions = "",
-	                        order = "",
-	                        SQLquery = sqlstr)
+  	  tblfunqueryobj <- new("FLTableFunctionQuery",
+  	                        connectionName = getFLConnectionName(),
+  	                        variables = list(obs_id_colname = "vectorIndexColumn",
+  	                                         cell_val_colname = "vectorValueColumn"),
+  	                        whereconditions = "",
+  	                        order = "",
+  	                        SQLquery = sqlstr)
 
-	  flv <- newFLVector(select = tblfunqueryobj,
-	                     Dimnames = list(rownames(newdata),
-	                                     "vectorValueColumn"),
-	                     dims = as.integer(c(newdata@dims[1], 1)),
-	                     isDeep = FALSE)
-	}
+  	  browser()
+  	  flv <- newFLVector(select = tblfunqueryobj,
+  	                     Dimnames = list(rownames(newdata),
+  	                                     "vectorValueColumn"),
+  	                     dims = as.integer(c(newdata@dims[1], 1)),
+  	                     isDeep = FALSE)
+  	}
 
-	return(flv)
+  	return(flv)
 }
 
 #' Print FLLinRegr Object

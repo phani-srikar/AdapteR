@@ -468,7 +468,7 @@ calcResiduals <- function(object,
                                 "a.vectorIndexColumn AS vectorIndexColumn, \n ",
                                 "(a.vectorValueColumn - b.vectorValueColumn)",
                                 " AS vectorValueColumn \n ",
-                          " FROM(", constructSelect(vYVector), ") a, \n ",
+                          " FROM(", constructSelect(vYVector[[i]]), ") a, \n ",
                                 "(", constructSelect(vfit[[i]]), ") b \n ",
                           " WHERE a.vectorIndexColumn = b.vectorIndexColumn ",
                           " AND a.vectorIdColumn = b.vectorIdColumn")
