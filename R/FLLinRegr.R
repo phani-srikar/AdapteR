@@ -1832,23 +1832,24 @@ prepareData.character <- prepareData.formula
       assign(parentObject, object, envir = parent.frame())
       return(object@results[["FLCoeffCorrelWithRes"]])
     }
-    else if(property == "s")
-    {
-      if (!is.null(object@results[["s"]]))
-      {
-        return(object@results[["s"]])
-      }
-      str <- paste0("SELECT * FROM ",
-                    object@vfcalls["statstablename"],
-                    " a WHERE a.AnalysisID = '",
-                    object@AnalysisID,
-                    "'")
-      t <- sqlQuery(connection, str)
-      val <- t[t$Notation == "Mad_S", 3]
-      object@results <- c(object@results, list(s = val))
-      assign(parentObject, object, envir = parent.frame())
-      return(val)
-    }
+    ## TODO:Jothi: Uncomment only after fixing
+    # else if(property == "s")
+    # {
+    #   if (!is.null(object@results[["s"]]))
+    #   {
+    #     return(object@results[["s"]])
+    #   }
+    #   str <- paste0("SELECT * FROM ",
+    #                 object@vfcalls["statstablename"],
+    #                 " a WHERE a.AnalysisID = '",
+    #                 object@AnalysisID,
+    #                 "'")
+    #   t <- sqlQuery(connection, str)
+    #   val <- t[t$Notation == "Mad_S", 3]
+    #   object@results <- c(object@results, list(s = val))
+    #   assign(parentObject, object, envir = parent.frame())
+    #   return(val)
+    # }
     else if(property=="call")
     {
         return(object@results[["call"]])
@@ -1872,13 +1873,8 @@ prepareData.character <- prepareData.formula
     }
     else if(property=="x")
     {
-      if(!is.null(object@results[["x"]]))
-        return(object@results[["x"]])
-
-      modelframe <- getXMatrix(object, pDropCols = c(-1))
-      object@results <- c(object@results, list(x = modelframe))
-      assign(parentObject, object, envir = parent.frame())
-      return(modelframe)
+      warning('Property "x" not supported for MD/MDS objects')
+      return()
     }
     else if(property=="y")
     {
@@ -1909,6 +1905,28 @@ prepareData.character <- prepareData.formula
                                " \nWHERE ", var_id_colname, " = -1 \n")
             }
 
+            yvector <- c()
+            if (object@vfcalls[["functionName"]] == "FLLinRegrSP") {
+				for (i in 1:length(newdata@Dimnames[[1]][[1]])) {
+					sqlstr1 <- paste(sqlstr, " WHERE vectorIdColumn = ", i, sep = "")
+
+					tblfunqueryobj <- new("FLTableFunctionQuery",
+					                  connectionName = getFLConnectionName(),
+					                  variables = list(obs_id_colname = "vectorIndexColumn",
+					                                   cell_val_colname = "vectorValueColumn"),
+					                  whereconditions = "",
+					                  order = "",
+					                  SQLquery = sqlstr1)
+
+					newflv <- newFLVector(select = tblfunqueryobj,
+					                  Dimnames = list(rownames(newdata@Dimnames[[2]][i]),
+					                                  "vectorValueColumn"),
+					                  dims = as.integer(c(newdata@dims[[2]][i], 1)),
+					                  isDeep = FALSE)
+					yvector <- c(yvector, newflv)
+				}
+		  	}
+
             tblfunqueryobj <- new("FLTableFunctionQuery",
                                   connectionName = getFLConnectionName(),
                                   variables = list(obs_id_colname = "vectorIndexColumn",
@@ -1929,29 +1947,8 @@ prepareData.character <- prepareData.formula
     }
     else if(property=="qr" || property=="rank")
     {
-        if(!is.null(object@results[["qr"]]))
-        {
-            if(property=="qr")
-                return(object@results[["qr"]])
-            else if(property=="rank")
-                return(object@results[["qr"]]$rank)
-        }
-        else
-        {
-            modelmatrix <- object$x
-            if(nrow(modelmatrix)>700
-               || ncol(modelmatrix)>700)
-                modelmatrix <- as.matrix(modelmatrix)
-                                        # modelmatrix <- as.matrix(object$x)
-                                        # qrList <- base::qr(modelmatrix)
-            qrList <- qr(modelmatrix)
-            vrank <- qrList$rank
-            object@results <- c(object@results,list(qr=qrList))
-            assign(parentObject,object,envir=parent.frame())
-            if(property=="qr")
-                return(qrList)
-            else if(property=="rank") return(vrank)
-        }
+      warning('Property "qr/rank" not supported for MD/MDS objects')
+      return()
     }
     else if(property=="terms")
     {
@@ -2515,7 +2512,6 @@ predict.lmGeneric <- function(object,
   	                        order = "",
   	                        SQLquery = sqlstr)
 
-  	  browser()
   	  flv <- newFLVector(select = tblfunqueryobj,
   	                     Dimnames = list(rownames(newdata),
   	                                     "vectorValueColumn"),
